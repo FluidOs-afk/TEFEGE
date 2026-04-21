@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # app
 
 A new Flutter project.
@@ -15,3 +16,7 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+=======
+# TEFEGE
+TEFEGE
+>>>>>>> 6987d1aa99d2b6b798823e5ed7e3bc700f273b32
