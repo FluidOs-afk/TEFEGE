@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/fashion_icon.dart';
 
 class PostModel {
   final String username;
@@ -11,7 +12,8 @@ class PostModel {
   final int comments;
   final List<String> tags;
   final Color placeholderColor;
-  final String placeholderEmoji;
+  final Color placeholderColorEnd;
+  final FashionCategory fashionCategory;
   final bool isLiked;
 
   const PostModel({
@@ -25,14 +27,12 @@ class PostModel {
     required this.comments,
     required this.tags,
     required this.placeholderColor,
-    required this.placeholderEmoji,
+    required this.placeholderColorEnd,
+    required this.fashionCategory,
     required this.isLiked,
   });
 
-  PostModel copyWith({
-    bool? isLiked,
-    int? likes,
-  }) {
+  PostModel copyWith({bool? isLiked, int? likes}) {
     return PostModel(
       username: username,
       avatar: avatar,
@@ -44,7 +44,8 @@ class PostModel {
       comments: comments,
       tags: tags,
       placeholderColor: placeholderColor,
-      placeholderEmoji: placeholderEmoji,
+      placeholderColorEnd: placeholderColorEnd,
+      fashionCategory: fashionCategory,
       isLiked: isLiked ?? this.isLiked,
     );
   }

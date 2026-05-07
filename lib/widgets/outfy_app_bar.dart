@@ -1,35 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../main.dart' show AppColors;
 
 class OutfyAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final List<Widget>? actions;
-  final bool showGradientTitle;
+  final bool showBrandTitle;
 
   const OutfyAppBar({
     super.key,
     required this.title,
     this.actions,
-    this.showGradientTitle = false,
+    this.showBrandTitle = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.bgCard,
       elevation: 0,
-      scrolledUnderElevation: 0.5,
+      scrolledUnderElevation: 0.4,
       centerTitle: true,
-      title: showGradientTitle
+      title: showBrandTitle
           ? ShaderMask(
               shaderCallback: (bounds) => const LinearGradient(
-                colors: [Color(0xFFE8537A), Color(0xFFFF8FAB)],
+                colors: [AppColors.primary, AppColors.primaryMed],
               ).createShader(bounds),
               child: Text(
                 title,
-                style: const TextStyle(
-                  fontFamily: 'Georgia',
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+                style: GoogleFonts.playfairDisplay(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
                   color: Colors.white,
                   letterSpacing: 4,
                 ),
@@ -37,10 +38,11 @@ class OutfyAppBar extends StatelessWidget implements PreferredSizeWidget {
             )
           : Text(
               title,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-                color: Color(0xFF2D2D2D),
+              style: GoogleFonts.dmSans(
+                fontWeight: FontWeight.w700,
+                fontSize: 17,
+                color: AppColors.textPrimary,
+                letterSpacing: -0.3,
               ),
             ),
       actions: actions,

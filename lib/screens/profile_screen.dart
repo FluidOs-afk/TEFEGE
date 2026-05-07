@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../main.dart' show AppColors;
+import '../widgets/fashion_icon.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
-
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
@@ -13,68 +15,69 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   final String _username = 'sergio.outfy';
   final String _bio =
-      '✨ Apasionado de la moda\n🧥 Armario curado con amor\n📍 Madrid · DAM 2025';
+      'Apasionado de la moda\nArmario curado con amor\nMadrid · DAM 2025';
 
   @override
   void initState() {
-    _tabController = TabController(length: 3, vsync: this);
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
   }
 
-  Widget _divider() {
-    return Container(
-      height: 28,
-      width: 1,
-      color: Colors.grey.shade300,
-    );
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F2F7),
+      backgroundColor: AppColors.bgPage,
       body: NestedScrollView(
         headerSliverBuilder: (_, __) => [
+          // ─── Collapsible AppBar ───────────────────────────────────────────
           SliverAppBar(
-            expandedHeight: 300,
+            expandedHeight: 310,
             pinned: true,
             elevation: 0,
-            backgroundColor: Colors.white,
-            actions: const [
-              Icon(Icons.share_outlined),
-              SizedBox(width: 12),
-              Icon(Icons.settings_outlined),
-              SizedBox(width: 12),
+            backgroundColor: AppColors.bgCard,
+            actions: [
+              IconButton(
+                  icon: const Icon(Icons.share_outlined),
+                  onPressed: () {}),
+              IconButton(
+                  icon: const Icon(Icons.settings_outlined),
+                  onPressed: () {}),
             ],
             flexibleSpace: LayoutBuilder(
               builder: (context, constraints) {
                 final percent =
                     (constraints.maxHeight - kToolbarHeight) / 240;
-
                 return Stack(
                   fit: StackFit.expand,
                   children: [
-                    // Gradient Header
+                    // Gradient backdrop
                     Container(
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            Color(0xFFE8537A),
-                            Color(0xFFFF8FAB),
-                            Color(0xFFFFC2D4)
+                            AppColors.primary,
+                            AppColors.primaryMed,
+                            AppColors.primaryLight,
                           ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
                       ),
                     ),
-
-                    // Content
+                    // Profile card
                     Positioned(
                       left: 16,
                       right: 16,
                       bottom: 16,
                       child: Opacity(
-                        opacity: percent.clamp(0, 1),
-                        child: _buildHeaderContent(),
+                        opacity: percent.clamp(0.0, 1.0),
+                        child: _buildHeaderCard(),
                       ),
                     ),
                   ],
@@ -83,19 +86,16 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ),
 
-          // Tabs
+          // ─── Tab bar ──────────────────────────────────────────────────────
           SliverPersistentHeader(
             pinned: true,
             delegate: _TabDelegate(
               TabBar(
                 controller: _tabController,
-                labelColor: const Color(0xFFE8537A),
-                unselectedLabelColor: Colors.grey,
-                indicatorColor: const Color(0xFFE8537A),
                 tabs: const [
                   Tab(icon: Icon(Icons.grid_on_rounded)),
                   Tab(icon: Icon(Icons.checkroom_rounded)),
-                  Tab(icon: Icon(Icons.bookmark_border)),
+                  Tab(icon: Icon(Icons.bookmark_border_rounded)),
                 ],
               ),
             ),
@@ -103,111 +103,127 @@ class _ProfileScreenState extends State<ProfileScreen>
         ],
         body: TabBarView(
           controller: _tabController,
-          children: [
-            _grid(),
-            _grid(),
-            _grid(),
-          ],
+          children: [_grid(), _grid(), _grid()],
         ),
       ),
     );
   }
 
-  Widget _buildHeaderContent() {
+  Widget _buildHeaderCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              // Avatar
-              Container(
-                width: 72,
-                height: 72,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [Color(0xFFE8537A), Color(0xFFFF8FAB)],
-                  ),
-                ),
-                child: const Center(
-                  child: Text(
-                    'SR',
-                    style: TextStyle(color: Colors.white, fontSize: 22),
-                  ),
-                ),
-              ),
-
-              const Spacer(),
-
-              // Edit button
-              OutlinedButton(
-                onPressed: () {},
-                style: OutlinedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20)),
-                ),
-                child: const Text("Editar perfil"),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-
-          Text(
-            _username,
-            style: const TextStyle(
-                fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-
-          const SizedBox(height: 4),
-
-          const Text(
-            "Madrid, España 🇪🇸",
-            style: TextStyle(color: Colors.grey, fontSize: 12),
-          ),
-
-          const SizedBox(height: 8),
-
-          Text(_bio),
-
-          const SizedBox(height: 16),
-
-          // 🔥 STATS PERFECTOS (SIN OVERFLOW)
-          Row(
-            children: [
-              Expanded(child: _stat("24", "Posts")),
-              _divider(),
-              Expanded(child: _stat("1.2K", "Seguidores")),
-              _divider(),
-              Expanded(child: _stat("348", "Siguiendo")),
-              _divider(),
-              Expanded(child: _stat("48", "Prendas")),
-            ],
-          ),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, 6))
         ],
       ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          // Avatar with gradient ring
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(
+                colors: [AppColors.primary, AppColors.primaryLight],
+              ),
+            ),
+            child: Center(
+              child: Text('SR',
+                  style: GoogleFonts.dmSans(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800)),
+            ),
+          ),
+          const Spacer(),
+          // Edit button
+          OutlinedButton(
+            onPressed: () {},
+            style: OutlinedButton.styleFrom(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: Text('Editar perfil',
+                style: GoogleFonts.dmSans(fontWeight: FontWeight.w600)),
+          ),
+        ]),
+        const SizedBox(height: 12),
+        Text(_username,
+            style: GoogleFonts.dmSans(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary)),
+        const SizedBox(height: 3),
+        Row(children: [
+          const Icon(Icons.location_on_outlined,
+              size: 13, color: AppColors.textHint),
+          const SizedBox(width: 3),
+          Text('Madrid, España',
+              style: GoogleFonts.dmSans(
+                  color: AppColors.textHint, fontSize: 12)),
+        ]),
+        const SizedBox(height: 8),
+        Text(_bio,
+            style: GoogleFonts.dmSans(
+                fontSize: 13,
+                color: AppColors.textSec,
+                height: 1.5)),
+        const SizedBox(height: 14),
+        // Stats row
+        Row(children: [
+          Expanded(child: _stat('24', 'Posts')),
+          Container(width: 1, height: 28, color: AppColors.border),
+          Expanded(child: _stat('1.2K', 'Seguidores')),
+          Container(width: 1, height: 28, color: AppColors.border),
+          Expanded(child: _stat('348', 'Siguiendo')),
+          Container(width: 1, height: 28, color: AppColors.border),
+          Expanded(child: _stat('48', 'Prendas')),
+        ]),
+      ]),
     );
   }
 
   Widget _stat(String value, String label) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(value,
-            style: const TextStyle(
-                fontWeight: FontWeight.bold, fontSize: 15)),
-        const SizedBox(height: 2),
-        Text(label,
-            style: const TextStyle(fontSize: 11, color: Colors.grey)),
-      ],
-    );
+    return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      Text(value,
+          style: GoogleFonts.dmSans(
+              fontWeight: FontWeight.w800,
+              fontSize: 15,
+              color: AppColors.primary)),
+      const SizedBox(height: 1),
+      Text(label,
+          style:
+              GoogleFonts.dmSans(fontSize: 10, color: AppColors.textHint)),
+    ]);
   }
+
+  // ─── Grid tiles ──────────────────────────────────────────────────────────────
+  static const _gridGradients = [
+    [Color(0xFF1B6B44), Color(0xFF3CB87A)],
+    [Color(0xFF37474F), Color(0xFF78909C)],
+    [Color(0xFF4A1275), Color(0xFF9C27B0)],
+    [Color(0xFF5D3A2A), Color(0xFF8D6E63)],
+    [Color(0xFF1A5E38), Color(0xFF4CAF50)],
+    [Color(0xFF263238), Color(0xFF607D8B)],
+  ];
+
+  static const _gridCats = [
+    FashionCategory.tops,
+    FashionCategory.coat,
+    FashionCategory.dress,
+    FashionCategory.shoes,
+    FashionCategory.pants,
+    FashionCategory.accessory,
+  ];
 
   Widget _grid() {
     return GridView.builder(
@@ -219,34 +235,59 @@ class _ProfileScreenState extends State<ProfileScreen>
       ),
       itemCount: 30,
       itemBuilder: (_, i) {
+        final colors = _gridGradients[i % _gridGradients.length];
+        final cat = _gridCats[i % _gridCats.length];
         return Container(
-          color: Colors.grey.shade200,
-          child: const Center(
-            child: Icon(Icons.image, color: Colors.grey),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: colors,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
+          child: Stack(fit: StackFit.expand, children: [
+            // Watermark
+            Positioned(
+              right: -8,
+              bottom: -8,
+              child: FashionIcon(
+                category: cat,
+                color: Colors.white.withOpacity(0.08),
+                size: 64,
+                strokeWidth: 1.5,
+              ),
+            ),
+            // Centre icon
+            Center(
+              child: FashionIcon(
+                category: cat,
+                color: Colors.white.withOpacity(0.9),
+                size: 30,
+                strokeWidth: 1.8,
+              ),
+            ),
+          ]),
         );
       },
     );
   }
 }
 
+// ─── Tab bar delegate ─────────────────────────────────────────────────────────
 class _TabDelegate extends SliverPersistentHeaderDelegate {
   final TabBar tabBar;
-
   const _TabDelegate(this.tabBar);
 
   @override
   Widget build(
       BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(color: Colors.white, child: tabBar);
+    return Container(color: AppColors.bgCard, child: tabBar);
   }
 
   @override
   double get maxExtent => tabBar.preferredSize.height;
-
   @override
   double get minExtent => tabBar.preferredSize.height;
-
   @override
-  bool shouldRebuild(covariant _TabDelegate oldDelegate) => false;
+  bool shouldRebuild(covariant _TabDelegate old) => false;
 }
