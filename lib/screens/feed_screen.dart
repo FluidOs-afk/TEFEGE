@@ -526,7 +526,7 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
                       child: IgnorePointer(
                         child: AnimatedBuilder(
                           animation: _heartCtrl,
-                          builder: (_, __) => _heartCtrl.value > 0
+                          builder: (_, _) => _heartCtrl.value > 0
                               ? Icon(Icons.favorite_rounded,
                                   color: Colors.white.withOpacity(1 - _heartCtrl.value),
                                   size: 90)

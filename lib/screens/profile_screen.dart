@@ -34,7 +34,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     return Scaffold(
       backgroundColor: AppColors.bgPage,
       body: NestedScrollView(
-        headerSliverBuilder: (_, __) => [
+        headerSliverBuilder: (_, _) => [
           // ─── Collapsible AppBar ───────────────────────────────────────────
           SliverAppBar(
             expandedHeight: 310,
