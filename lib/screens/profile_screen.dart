@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../main.dart' show AppColors;
 import '../widgets/fashion_icon.dart';
+import '../services/profile_service.dart';
+import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -12,21 +14,32 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-
-  final String _username = 'sergio.outfy';
-  final String _bio =
-      'Apasionado de la moda\nArmario curado con amor\nMadrid · DAM 2025';
+  late UserProfile _profile;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _profile = ProfileService.instance.profile;
+    ProfileService.instance.addListener(_onProfileChanged);
+    ProfileService.instance.load();
+  }
+
+  void _onProfileChanged() {
+    if (mounted) setState(() => _profile = ProfileService.instance.profile);
   }
 
   @override
   void dispose() {
+    ProfileService.instance.removeListener(_onProfileChanged);
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _openEditProfile() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+    );
   }
 
   @override
@@ -34,7 +47,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     return Scaffold(
       backgroundColor: AppColors.bgPage,
       body: NestedScrollView(
-        headerSliverBuilder: (_, __) => [
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
           // ─── Collapsible AppBar ───────────────────────────────────────────
           SliverAppBar(
             expandedHeight: 310,
@@ -47,7 +60,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   onPressed: () {}),
               IconButton(
                   icon: const Icon(Icons.settings_outlined),
-                  onPressed: () {}),
+                  onPressed: _openEditProfile),
             ],
             flexibleSpace: LayoutBuilder(
               builder: (context, constraints) {
@@ -128,14 +141,14 @@ class _ProfileScreenState extends State<ProfileScreen>
           Container(
             width: 72,
             height: 72,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 colors: [AppColors.primary, AppColors.primaryLight],
               ),
             ),
             child: Center(
-              child: Text('SR',
+              child: Text(_profile.initials,
                   style: GoogleFonts.dmSans(
                       color: Colors.white,
                       fontSize: 22,
@@ -145,7 +158,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           const Spacer(),
           // Edit button
           OutlinedButton(
-            onPressed: () {},
+            onPressed: _openEditProfile,
             style: OutlinedButton.styleFrom(
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20)),
@@ -157,26 +170,29 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
         ]),
         const SizedBox(height: 12),
-        Text(_username,
+        Text(_profile.username,
             style: GoogleFonts.dmSans(
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
                 color: AppColors.textPrimary)),
         const SizedBox(height: 3),
-        Row(children: [
-          const Icon(Icons.location_on_outlined,
-              size: 13, color: AppColors.textHint),
-          const SizedBox(width: 3),
-          Text('Madrid, España',
+        if (_profile.location.isNotEmpty) ...[
+          Row(children: [
+            const Icon(Icons.location_on_outlined,
+                size: 13, color: AppColors.textHint),
+            const SizedBox(width: 3),
+            Text(_profile.location,
+                style: GoogleFonts.dmSans(
+                    color: AppColors.textHint, fontSize: 12)),
+          ]),
+          const SizedBox(height: 8),
+        ],
+        if (_profile.bio.isNotEmpty)
+          Text(_profile.bio,
               style: GoogleFonts.dmSans(
-                  color: AppColors.textHint, fontSize: 12)),
-        ]),
-        const SizedBox(height: 8),
-        Text(_bio,
-            style: GoogleFonts.dmSans(
-                fontSize: 13,
-                color: AppColors.textSec,
-                height: 1.5)),
+                  fontSize: 13,
+                  color: AppColors.textSec,
+                  height: 1.5)),
         const SizedBox(height: 14),
         // Stats row
         Row(children: [
