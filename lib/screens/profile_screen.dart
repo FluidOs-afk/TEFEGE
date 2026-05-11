@@ -216,6 +216,12 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ),
           const Spacer(),
+          IconButton.filled(
+            onPressed: _openCreatePost,
+            tooltip: 'Nueva publicación',
+            icon: const Icon(Icons.add_a_photo_outlined, size: 20),
+          ),
+          const SizedBox(width: 8),
           OutlinedButton(
             onPressed: _openEditProfile,
             style: OutlinedButton.styleFrom(
