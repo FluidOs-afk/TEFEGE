@@ -1,9 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../main.dart' show AppColors;
-import '../widgets/fashion_icon.dart';
+import '../models/user_post.dart';
+import '../services/posts_service.dart';
 import '../services/profile_service.dart';
+import '../widgets/fashion_icon.dart';
 import 'edit_profile_screen.dart';
+import 'create_post_screen.dart';
+import 'post_detail_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -15,6 +20,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late UserProfile _profile;
+  int _selectedTab = 0;
 
   @override
   void initState() {
@@ -23,15 +29,26 @@ class _ProfileScreenState extends State<ProfileScreen>
     _profile = ProfileService.instance.profile;
     ProfileService.instance.addListener(_onProfileChanged);
     ProfileService.instance.load();
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        setState(() => _selectedTab = _tabController.index);
+      }
+    });
+    PostsService.instance.addListener(_onPostsChanged);
   }
 
   void _onProfileChanged() {
     if (mounted) setState(() => _profile = ProfileService.instance.profile);
   }
 
+  void _onPostsChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
     ProfileService.instance.removeListener(_onProfileChanged);
+    PostsService.instance.removeListener(_onPostsChanged);
     _tabController.dispose();
     super.dispose();
   }
@@ -42,10 +59,54 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
+  void _openCreatePost() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const CreatePostScreen()),
+    );
+  }
+
+  void _confirmDelete(UserPost post) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Eliminar publicación',
+            style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
+        content: Text(
+            '¿Eliminar "${post.title}"? Esta acción no se puede deshacer.',
+            style: GoogleFonts.dmSans(color: AppColors.textSec)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text('Cancelar',
+                style: GoogleFonts.dmSans(color: AppColors.textSec)),
+          ),
+          TextButton(
+            onPressed: () {
+              PostsService.instance.remove(post.id);
+              Navigator.of(ctx).pop();
+            },
+            child: Text('Eliminar',
+                style: GoogleFonts.dmSans(
+                    color: Colors.red, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgPage,
+      floatingActionButton: _selectedTab == 0
+          ? FloatingActionButton(
+              onPressed: _openCreatePost,
+              tooltip: 'Nueva publicación',
+              child: const Icon(Icons.add_rounded),
+            )
+          : null,
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           // ─── Collapsible AppBar ───────────────────────────────────────────
@@ -63,13 +124,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                   onPressed: _openEditProfile),
             ],
             flexibleSpace: LayoutBuilder(
-              builder: (context, constraints) {
+              builder: (ctx, constraints) {
                 final percent =
                     (constraints.maxHeight - kToolbarHeight) / 240;
                 return Stack(
                   fit: StackFit.expand,
                   children: [
-                    // Gradient backdrop
                     Container(
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
@@ -83,7 +143,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                         ),
                       ),
                     ),
-                    // Profile card
                     Positioned(
                       left: 16,
                       right: 16,
@@ -116,13 +175,15 @@ class _ProfileScreenState extends State<ProfileScreen>
         ],
         body: TabBarView(
           controller: _tabController,
-          children: [_grid(), _grid(), _grid()],
+          children: [_postsTab(), _grid(), _grid()],
         ),
       ),
     );
   }
 
+  // ─── Header card ──────────────────────────────────────────────────────────────
   Widget _buildHeaderCard() {
+    final postCount = PostsService.instance.count;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -130,14 +191,13 @@ class _ProfileScreenState extends State<ProfileScreen>
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 20,
               offset: const Offset(0, 6))
         ],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          // Avatar with gradient ring
           Container(
             width: 72,
             height: 72,
@@ -156,7 +216,12 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ),
           const Spacer(),
-          // Edit button
+          IconButton.filled(
+            onPressed: _openCreatePost,
+            tooltip: 'Nueva publicación',
+            icon: const Icon(Icons.add_a_photo_outlined, size: 20),
+          ),
+          const SizedBox(width: 8),
           OutlinedButton(
             onPressed: _openEditProfile,
             style: OutlinedButton.styleFrom(
@@ -190,13 +255,10 @@ class _ProfileScreenState extends State<ProfileScreen>
         if (_profile.bio.isNotEmpty)
           Text(_profile.bio,
               style: GoogleFonts.dmSans(
-                  fontSize: 13,
-                  color: AppColors.textSec,
-                  height: 1.5)),
+                  fontSize: 13, color: AppColors.textSec, height: 1.5)),
         const SizedBox(height: 14),
-        // Stats row
         Row(children: [
-          Expanded(child: _stat('24', 'Posts')),
+          Expanded(child: _stat('$postCount', 'Posts')),
           Container(width: 1, height: 28, color: AppColors.border),
           Expanded(child: _stat('1.2K', 'Seguidores')),
           Container(width: 1, height: 28, color: AppColors.border),
@@ -217,12 +279,132 @@ class _ProfileScreenState extends State<ProfileScreen>
               color: AppColors.primary)),
       const SizedBox(height: 1),
       Text(label,
-          style:
-              GoogleFonts.dmSans(fontSize: 10, color: AppColors.textHint)),
+          style: GoogleFonts.dmSans(
+              fontSize: 10, color: AppColors.textHint)),
     ]);
   }
 
-  // ─── Grid tiles ──────────────────────────────────────────────────────────────
+  // ─── Posts tab ────────────────────────────────────────────────────────────────
+  Widget _postsTab() {
+    final posts = PostsService.instance.posts;
+    if (posts.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.grid_off_rounded,
+                size: 52, color: AppColors.textHint),
+            const SizedBox(height: 14),
+            Text('Sin publicaciones',
+                style: GoogleFonts.dmSans(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                    color: AppColors.textPrimary)),
+            const SizedBox(height: 6),
+            Text('Pulsa + para crear tu primera publicación',
+                style: GoogleFonts.dmSans(
+                    color: AppColors.textHint, fontSize: 13)),
+            const SizedBox(height: 24),
+            OutlinedButton.icon(
+              onPressed: _openCreatePost,
+              icon: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('Nueva publicación'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(2),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 2,
+        mainAxisSpacing: 2,
+      ),
+      itemCount: posts.length,
+      itemBuilder: (_, i) => _postCell(posts[i]),
+    );
+  }
+
+  void _openPost(UserPost post) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PostDetailScreen(postId: post.id),
+      ),
+    );
+  }
+
+  Widget _postCell(UserPost post) {
+    final hasPhoto =
+        post.imagePath != null && File(post.imagePath!).existsSync();
+
+    return GestureDetector(
+      onTap: () => _openPost(post),
+      onLongPress: () => _confirmDelete(post),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Fondo: foto real o gradiente
+          if (hasPhoto)
+            Image.file(File(post.imagePath!), fit: BoxFit.cover)
+          else
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: post.gradient,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Stack(fit: StackFit.expand, children: [
+                Positioned(
+                  right: -8, bottom: -8,
+                  child: FashionIcon(
+                    category: post.category,
+                    color: Colors.white.withValues(alpha: 0.1),
+                    size: 64, strokeWidth: 1.5,
+                  ),
+                ),
+                Center(
+                  child: FashionIcon(
+                    category: post.category,
+                    color: Colors.white.withValues(alpha: 0.9),
+                    size: 30, strokeWidth: 1.8,
+                  ),
+                ),
+              ]),
+            ),
+          // Título superpuesto
+          Positioned(
+            left: 0, right: 0, bottom: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.55)
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+              child: Text(post.title,
+                  style: GoogleFonts.dmSans(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Placeholder grid (tabs 2 y 3) ───────────────────────────────────────────
   static const _gridGradients = [
     [Color(0xFF1B6B44), Color(0xFF3CB87A)],
     [Color(0xFF37474F), Color(0xFF78909C)],
@@ -262,22 +444,20 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ),
           child: Stack(fit: StackFit.expand, children: [
-            // Watermark
             Positioned(
               right: -8,
               bottom: -8,
               child: FashionIcon(
                 category: cat,
-                color: Colors.white.withOpacity(0.08),
+                color: Colors.white.withValues(alpha: 0.08),
                 size: 64,
                 strokeWidth: 1.5,
               ),
             ),
-            // Centre icon
             Center(
               child: FashionIcon(
                 category: cat,
-                color: Colors.white.withOpacity(0.9),
+                color: Colors.white.withValues(alpha: 0.9),
                 size: 30,
                 strokeWidth: 1.8,
               ),
