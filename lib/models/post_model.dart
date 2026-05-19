@@ -32,7 +32,7 @@ class PostModel {
     required this.isLiked,
   });
 
-  PostModel copyWith({bool? isLiked, int? likes}) {
+  PostModel copyWith({bool? isLiked, int? likes, int? comments}) {
     return PostModel(
       username: username,
       avatar: avatar,
@@ -41,7 +41,7 @@ class PostModel {
       outfitTitle: outfitTitle,
       description: description,
       likes: likes ?? this.likes,
-      comments: comments,
+      comments: comments ?? this.comments,
       tags: tags,
       placeholderColor: placeholderColor,
       placeholderColorEnd: placeholderColorEnd,

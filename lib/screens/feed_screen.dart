@@ -1,164 +1,327 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import '../main.dart' show AppColors;
 import '../models/post_model.dart';
 import '../widgets/fashion_icon.dart';
-import '../main.dart' show AppColors;
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
+
   @override
   State<FeedScreen> createState() => _FeedScreenState();
 }
 
 class _FeedScreenState extends State<FeedScreen> {
   int _activeFilter = 0;
+  bool _hasUnreadNotifications = true;
+
   final List<String> _filters = ['Para ti', 'Siguiendo', 'Tendencias', 'Cerca'];
 
   final List<PostModel> _posts = [
-    PostModel(username: 'sofia.styles', avatar: 'S', avatarColor: Color(0xFF3CB87A), timeAgo: 'Hace 12 min',
-        outfitTitle: 'Look casual viernes',
-        description: 'Mi look favorito para el trabajo — blazer oversize + vaqueros slouchy. Comodidad sin sacrificar el estilo.',
-        likes: 3420, comments: 284, tags: ['Casual', 'Oficina', 'OOTD'],
-        placeholderColor: Color(0xFF1B6B44), placeholderColorEnd: Color(0xFF3CB87A),
-        fashionCategory: FashionCategory.tops, isLiked: true),
-    PostModel(username: 'marta.fashion', avatar: 'M', avatarColor: Color(0xFF9C27B0), timeAgo: 'Hace 1h',
-        outfitTitle: 'Streetwear primavera',
-        description: 'Tonos pastel para celebrar la primavera. La paleta coral y lavanda es mi obsesión esta temporada.',
-        likes: 8910, comments: 641, tags: ['Streetwear', 'Pastel', 'Spring'],
-        placeholderColor: Color(0xFF7B1FA2), placeholderColorEnd: Color(0xFFCE93D8),
-        fashionCategory: FashionCategory.pants, isLiked: false),
-    PostModel(username: 'lucia.vintage', avatar: 'L', avatarColor: Color(0xFF6D4C41), timeAgo: 'Hace 3h',
-        outfitTitle: 'Vintage meets modern',
-        description: 'Abrigo de lana del mercadillo de Malasaña por 15€. El thrift shopping no tiene precio.',
-        likes: 12430, comments: 1120, tags: ['Vintage', 'Thrift', 'Sostenible'],
-        placeholderColor: Color(0xFF4E342E), placeholderColorEnd: Color(0xFF8D6E63),
-        fashionCategory: FashionCategory.coat, isLiked: false),
-    PostModel(username: 'andrea.glam', avatar: 'A', avatarColor: Color(0xFF455A64), timeAgo: 'Hace 5h',
-        outfitTitle: 'Night out ready',
-        description: 'Para las noches de verano — vestido satinado y sandalias doradas. Less is more.',
-        likes: 21040, comments: 870, tags: ['NightOut', 'Elegante', 'Summer'],
-        placeholderColor: Color(0xFF263238), placeholderColorEnd: Color(0xFF546E7A),
-        fashionCategory: FashionCategory.dress, isLiked: false),
+    const PostModel(
+      username: 'sofia.styles',
+      avatar: 'S',
+      avatarColor: Color(0xFF3CB87A),
+      timeAgo: 'Hace 12 min',
+      outfitTitle: 'Look casual viernes',
+      description:
+          'Mi look favorito para el trabajo: blazer oversize y vaqueros slouchy. Comodidad sin sacrificar estilo.',
+      likes: 3420,
+      comments: 4,
+      tags: ['Casual', 'Oficina', 'OOTD'],
+      placeholderColor: Color(0xFF1B6B44),
+      placeholderColorEnd: Color(0xFF3CB87A),
+      fashionCategory: FashionCategory.tops,
+      isLiked: true,
+    ),
+    const PostModel(
+      username: 'marta.fashion',
+      avatar: 'M',
+      avatarColor: Color(0xFF8E44AD),
+      timeAgo: 'Hace 1 h',
+      outfitTitle: 'Streetwear primavera',
+      description:
+          'Tonos pastel para celebrar la primavera. Coral, lavanda y zapatillas limpias para todo el dia.',
+      likes: 8910,
+      comments: 3,
+      tags: ['Streetwear', 'Pastel', 'Spring'],
+      placeholderColor: Color(0xFF6A4C93),
+      placeholderColorEnd: Color(0xFFEAC7C7),
+      fashionCategory: FashionCategory.pants,
+      isLiked: false,
+    ),
+    const PostModel(
+      username: 'lucia.vintage',
+      avatar: 'L',
+      avatarColor: Color(0xFF9A6B4F),
+      timeAgo: 'Hace 3 h',
+      outfitTitle: 'Vintage meets modern',
+      description:
+          'Abrigo de lana del mercadillo de Malasana por 15 euros. La segunda mano tambien puede verse premium.',
+      likes: 12430,
+      comments: 3,
+      tags: ['Vintage', 'Thrift', 'Sostenible'],
+      placeholderColor: Color(0xFF5D4E46),
+      placeholderColorEnd: Color(0xFFD7B49E),
+      fashionCategory: FashionCategory.coat,
+      isLiked: false,
+    ),
+    const PostModel(
+      username: 'andrea.glam',
+      avatar: 'A',
+      avatarColor: Color(0xFF455A64),
+      timeAgo: 'Hace 5 h',
+      outfitTitle: 'Night out ready',
+      description:
+          'Vestido satinado, sandalias doradas y bolso pequeno. Para salir elegante sin parecer demasiado producida.',
+      likes: 21040,
+      comments: 2,
+      tags: ['NightOut', 'Elegante', 'Summer'],
+      placeholderColor: Color(0xFF263238),
+      placeholderColorEnd: Color(0xFF8EA4B2),
+      fashionCategory: FashionCategory.dress,
+      isLiked: false,
+    ),
   ];
 
   final List<_Story> _stories = [
-    _Story(label: 'sofia.s',   color: Color(0xFF1B6B44), initial: 'S', hasNew: true),
-    _Story(label: 'marta.f',   color: Color(0xFF9C27B0), initial: 'M', hasNew: true),
-    _Story(label: 'lucia.v',   color: Color(0xFF6D4C41), initial: 'L', hasNew: false),
-    _Story(label: 'andrea.g',  color: Color(0xFF455A64), initial: 'A', hasNew: true),
-    _Story(label: 'carmen.b',  color: Color(0xFF00838F), initial: 'C', hasNew: false),
-    _Story(label: 'paula.m',   color: Color(0xFF2E7D32), initial: 'P', hasNew: false),
+    _Story(
+      label: 'sofia.s',
+      color: const Color(0xFF1B6B44),
+      initial: 'S',
+      hasNew: true,
+      title: 'Capsula de oficina',
+      detail: 'Blazer, denim recto y mocasin pulido.',
+      category: FashionCategory.tops,
+    ),
+    _Story(
+      label: 'marta.f',
+      color: const Color(0xFF8E44AD),
+      initial: 'M',
+      hasNew: true,
+      title: 'Paleta pastel',
+      detail: 'Coral suave con lavanda y accesorios plata.',
+      category: FashionCategory.pants,
+    ),
+    _Story(
+      label: 'lucia.v',
+      color: const Color(0xFF9A6B4F),
+      initial: 'L',
+      hasNew: false,
+      title: 'Hallazgo vintage',
+      detail: 'Abrigo de lana, cuello alto y bolso estructurado.',
+      category: FashionCategory.coat,
+    ),
+    _Story(
+      label: 'andrea.g',
+      color: const Color(0xFF455A64),
+      initial: 'A',
+      hasNew: true,
+      title: 'Noche satinada',
+      detail: 'Texturas brillantes con sandalias finas.',
+      category: FashionCategory.dress,
+    ),
+    _Story(
+      label: 'carmen.b',
+      color: const Color(0xFF00838F),
+      initial: 'C',
+      hasNew: false,
+      title: 'Azules limpios',
+      detail: 'Camisa abierta, camiseta blanca y pantalon amplio.',
+      category: FashionCategory.accessory,
+    ),
+    _Story(
+      label: 'paula.m',
+      color: const Color(0xFF2E7D32),
+      initial: 'P',
+      hasNew: false,
+      title: 'Verde urbano',
+      detail: 'Cargo fluido con top negro y bolso mini.',
+      category: FashionCategory.shoes,
+    ),
   ];
+
+  final Map<String, List<Map<String, String>>> _commentsByPost = {
+    'sofia.styles': [
+      {'user': 'carmen.b', 'text': 'Esta combinacion es perfecta. Donde es el blazer?', 'time': '5 min'},
+      {'user': 'ana.trends', 'text': 'Me tienes obsesionada con este look', 'time': '12 min'},
+      {'user': 'paula.style', 'text': 'Inspiracion total para manana', 'time': '23 min'},
+      {'user': 'sara.moda', 'text': 'Los colores tierra son mi nueva obsesion', 'time': '1 h'},
+    ],
+    'marta.fashion': [
+      {'user': 'sofia.styles', 'text': 'El lavanda con coral queda increible.', 'time': '8 min'},
+      {'user': 'nerea.fit', 'text': 'Necesito esas zapatillas.', 'time': '19 min'},
+      {'user': 'laura.mod', 'text': 'Muy primaveral y nada obvio.', 'time': '1 h'},
+    ],
+    'lucia.vintage': [
+      {'user': 'marta.fashion', 'text': 'Ese abrigo parece de boutique.', 'time': '14 min'},
+      {'user': 'carmen.b', 'text': 'Malasana nunca falla.', 'time': '36 min'},
+      {'user': 'alba.slow', 'text': 'Mas looks sostenibles asi, por favor.', 'time': '2 h'},
+    ],
+    'andrea.glam': [
+      {'user': 'paula.style', 'text': 'Elegante sin pasarse. Perfecto.', 'time': '20 min'},
+      {'user': 'sofia.styles', 'text': 'El bolso pequeno lo cambia todo.', 'time': '1 h'},
+    ],
+  };
+
+  List<PostModel> get _visiblePosts {
+    switch (_activeFilter) {
+      case 1:
+        return _posts.where((post) => post.username != 'andrea.glam').toList();
+      case 2:
+        return [..._posts]..sort((a, b) => b.likes.compareTo(a.likes));
+      case 3:
+        return _posts.where((post) => post.tags.any((tag) => tag != 'Summer')).toList();
+      default:
+        return _posts;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final posts = _visiblePosts;
+
     return Scaffold(
       backgroundColor: AppColors.bgPage,
-      body: CustomScrollView(
-        slivers: [
-          // ── AppBar ─────────────────────────────────────────────────────────
-          SliverAppBar(
-            floating: true, snap: true,
-            backgroundColor: AppColors.bgCard,
-            elevation: 0, scrolledUnderElevation: 0.3,
-            surfaceTintColor: Colors.transparent,
-            centerTitle: true,
-            title: ShaderMask(
-              shaderCallback: (b) => const LinearGradient(
-                colors: [AppColors.primary, AppColors.primaryMed],
-              ).createShader(b),
-              child: Text('OUTFY',
-                style: GoogleFonts.playfairDisplay(
-                  fontSize: 26, fontWeight: FontWeight.w800,
-                  color: Colors.white, letterSpacing: 5,
+      body: RefreshIndicator(
+        color: AppColors.primary,
+        onRefresh: () async {
+          await Future<void>.delayed(const Duration(milliseconds: 550));
+          if (!mounted) return;
+          setState(() => _hasUnreadNotifications = true);
+          _toast('Inicio actualizado');
+        },
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverAppBar(
+              floating: true,
+              snap: true,
+              backgroundColor: AppColors.bgCard,
+              elevation: 0,
+              scrolledUnderElevation: 0.3,
+              surfaceTintColor: Colors.transparent,
+              centerTitle: true,
+              title: ShaderMask(
+                shaderCallback: (bounds) => const LinearGradient(
+                  colors: [AppColors.primary, AppColors.primaryMed],
+                ).createShader(bounds),
+                child: Text(
+                  'OUTFY',
+                  style: GoogleFonts.playfairDisplay(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    letterSpacing: 5,
+                  ),
                 ),
               ),
-            ),
-            actions: [
-              IconButton(
-                onPressed: () => _showNotifications(context),
-                icon: Stack(clipBehavior: Clip.none, children: [
-                  const Icon(Icons.notifications_outlined, color: AppColors.textPrimary, size: 22),
-                  Positioned(right: 1, top: 1,
-                    child: Container(width: 7, height: 7,
-                      decoration: const BoxDecoration(color: AppColors.primaryMed, shape: BoxShape.circle))),
-                ]),
-              ),
-              IconButton(
-                onPressed: () => _showSearch(context),
-                icon: const Icon(Icons.search_rounded, color: AppColors.textPrimary, size: 22),
-              ),
-              const SizedBox(width: 4),
-            ],
-          ),
-
-          // ── Stories ────────────────────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Container(
-              color: AppColors.bgCard,
-              padding: const EdgeInsets.only(bottom: 14, top: 6),
-              child: SizedBox(
-                height: 98,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: _stories.length + 1,
-                  itemBuilder: (_, i) {
-                    if (i == 0) return _buildMyStory(context);
-                    return _buildStoryItem(_stories[i - 1]);
+              actions: [
+                IconButton(
+                  tooltip: 'Notificaciones',
+                  onPressed: () {
+                    setState(() => _hasUnreadNotifications = false);
+                    _showNotifications(context);
                   },
+                  icon: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      const Icon(Icons.notifications_outlined, color: AppColors.textPrimary, size: 22),
+                      if (_hasUnreadNotifications)
+                        Positioned(
+                          right: 1,
+                          top: 1,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: AppColors.primaryMed,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Buscar',
+                  onPressed: () => _showSearch(context),
+                  icon: const Icon(Icons.search_rounded, color: AppColors.textPrimary, size: 22),
+                ),
+                const SizedBox(width: 4),
+              ],
+            ),
+            SliverToBoxAdapter(
+              child: Container(
+                color: AppColors.bgCard,
+                padding: const EdgeInsets.only(bottom: 14, top: 6),
+                child: SizedBox(
+                  height: 100,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _stories.length + 1,
+                    itemBuilder: (_, index) {
+                      if (index == 0) return _buildMyStory(context);
+                      return _buildStoryItem(index - 1);
+                    },
+                  ),
                 ),
               ),
             ),
-          ),
-
-          // ── Divider ────────────────────────────────────────────────────────
-          const SliverToBoxAdapter(
-            child: Divider(height: 1, thickness: 1, color: AppColors.border),
-          ),
-
-          // ── Filters ────────────────────────────────────────────────────────
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _FilterDelegate(
-              filters: _filters,
-              activeFilter: _activeFilter,
-              onChanged: (i) => setState(() => _activeFilter = i),
+            const SliverToBoxAdapter(child: Divider(height: 1, color: AppColors.border)),
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _FilterDelegate(
+                filters: _filters,
+                activeFilter: _activeFilter,
+                onChanged: (index) => setState(() => _activeFilter = index),
+              ),
             ),
-          ),
-
-          // ── Posts ──────────────────────────────────────────────────────────
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (_, i) {
-                if (i == _posts.length) return const SizedBox(height: 20);
-                return _PostCard(
-                  post: _posts[i],
-                  onLike: () => setState(() {
-                    final p = _posts[i];
-                    _posts[i] = p.copyWith(
-                      isLiked: !p.isLiked,
-                      likes: p.isLiked ? p.likes - 1 : p.likes + 1,
-                    );
-                  }),
-                  onComment: () => _showComments(context, _posts[i]),
-                );
-              },
-              childCount: _posts.length + 1,
+            SliverToBoxAdapter(
+              child: _FeedStatusBar(
+                title: _filters[_activeFilter],
+                subtitle: '${posts.length} looks seleccionados para inspirarte hoy',
+              ),
             ),
-          ),
-        ],
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (_, index) {
+                  if (index == posts.length) return const SizedBox(height: 20);
+                  final post = posts[index];
+                  final realIndex = _posts.indexWhere((item) => item.username == post.username);
+
+                  return _PostCard(
+                    key: ValueKey(post.username),
+                    post: post,
+                    onLike: () => setState(() {
+                      final current = _posts[realIndex];
+                      _posts[realIndex] = current.copyWith(
+                        isLiked: !current.isLiked,
+                        likes: current.isLiked ? current.likes - 1 : current.likes + 1,
+                      );
+                    }),
+                    onComment: () => _showComments(context, post),
+                    onOpenOutfit: () => _showOutfitPreview(context, post),
+                  );
+                },
+                childCount: posts.length + 1,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // ── Story Builders ──────────────────────────────────────────────────────────
   Widget _buildMyStory(BuildContext context) {
     return GestureDetector(
-      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Añadir a tu historia',
-          style: GoogleFonts.dmSans(fontWeight: FontWeight.w500)))),
-      child: _StoryBubble(
+      onTap: () => _showCreateStory(context),
+      child: const _StoryBubble(
         initial: '+',
         label: 'Tu historia',
         color: AppColors.primaryMed,
@@ -168,28 +331,120 @@ class _FeedScreenState extends State<FeedScreen> {
     );
   }
 
-  Widget _buildStoryItem(_Story s) {
+  Widget _buildStoryItem(int index) {
+    final story = _stories[index];
     return GestureDetector(
-      onTap: () {},
+      onTap: () async {
+        await Navigator.of(context).push(
+          PageRouteBuilder<void>(
+            opaque: false,
+            barrierColor: Colors.black,
+            pageBuilder: (_, __, ___) => _StoryViewer(
+              stories: _stories,
+              initialIndex: index,
+              onViewed: (viewedIndex) {
+                if (!mounted) return;
+                setState(() {
+                  _stories[viewedIndex] = _stories[viewedIndex].copyWith(hasNew: false);
+                });
+              },
+            ),
+          ),
+        );
+      },
       child: _StoryBubble(
-        initial: s.initial,
-        label: s.label.length > 7 ? '${s.label.substring(0, 6)}…' : s.label,
-        color: s.color,
-        hasNew: s.hasNew,
+        initial: story.initial,
+        label: story.label.length > 8 ? '${story.label.substring(0, 7)}...' : story.label,
+        color: story.color,
+        hasNew: story.hasNew,
         isMe: false,
       ),
     );
   }
 
-  // ── Sheets ─────────────────────────────────────────────────────────────────
+  void _showCreateStory(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _BottomSheet(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SheetHandle(),
+                const SizedBox(height: 18),
+                Text(
+                  'Crear historia',
+                  style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Elige un formato rapido para mostrar tu outfit. Es una maqueta funcional en memoria.',
+                  style: GoogleFonts.dmSans(color: AppColors.textSec, fontSize: 13),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _QuickActionTile(
+                        icon: Icons.camera_alt_outlined,
+                        title: 'Camara',
+                        onTap: () {
+                          Navigator.pop(context);
+                          _toast('Camara lista para una futura integracion');
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _QuickActionTile(
+                        icon: Icons.checkroom_outlined,
+                        title: 'Outfit',
+                        onTap: () {
+                          Navigator.pop(context);
+                          setState(() {
+                            _stories.insert(
+                              0,
+                              _Story(
+                                label: 'tu.look',
+                                color: AppColors.primary,
+                                initial: 'T',
+                                hasNew: true,
+                                title: 'Nuevo outfit',
+                                detail: 'Historia creada durante esta sesion.',
+                                category: FashionCategory.tops,
+                              ),
+                            );
+                          });
+                          _toast('Historia creada');
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showNotifications(BuildContext context) {
     showModalBottomSheet(
-      context: context, isScrollControlled: true,
+      context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _BottomSheet(
         child: DraggableScrollableSheet(
-          initialChildSize: 0.55, minChildSize: 0.35, maxChildSize: 0.88, expand: false,
-          builder: (_, ctrl) => _NotificationsSheet(controller: ctrl),
+          initialChildSize: 0.56,
+          minChildSize: 0.35,
+          maxChildSize: 0.88,
+          expand: false,
+          builder: (_, controller) => _NotificationsSheet(controller: controller),
         ),
       ),
     );
@@ -197,60 +452,131 @@ class _FeedScreenState extends State<FeedScreen> {
 
   void _showSearch(BuildContext context) {
     showModalBottomSheet(
-      context: context, isScrollControlled: true,
+      context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _BottomSheet(
         child: Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-          child: _SearchSheet(),
+          child: _SearchSheet(onSelect: (value) => _toast('Abriendo $value')),
         ),
       ),
     );
   }
 
   void _showComments(BuildContext context, PostModel post) {
+    final comments = _commentsByPost.putIfAbsent(post.username, () => []);
     showModalBottomSheet(
-      context: context, isScrollControlled: true,
+      context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _BottomSheet(
         child: DraggableScrollableSheet(
-          initialChildSize: 0.65, minChildSize: 0.4, maxChildSize: 0.92, expand: false,
-          builder: (_, ctrl) => _CommentsSheet(scrollController: ctrl, username: post.username),
+          initialChildSize: 0.68,
+          minChildSize: 0.4,
+          maxChildSize: 0.92,
+          expand: false,
+          builder: (_, controller) => _CommentsSheet(
+            scrollController: controller,
+            username: post.username,
+            comments: comments,
+            onChanged: () => _syncCommentCount(post.username),
+          ),
         ),
       ),
+    );
+  }
+
+  void _syncCommentCount(String username) {
+    final index = _posts.indexWhere((post) => post.username == username);
+    if (index == -1) return;
+    setState(() {
+      _posts[index] = _posts[index].copyWith(
+        comments: _commentsByPost[username]?.length ?? 0,
+      );
+    });
+  }
+
+  void _showOutfitPreview(BuildContext context, PostModel post) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _BottomSheet(child: _OutfitPreview(post: post)),
+    );
+  }
+
+  void _toast(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message, style: GoogleFonts.dmSans(fontWeight: FontWeight.w600))),
     );
   }
 }
 
 class _Story {
-  final String label, initial;
+  final String label;
+  final String initial;
   final Color color;
   final bool hasNew;
-  const _Story({required this.label, required this.color, required this.initial, required this.hasNew});
+  final String title;
+  final String detail;
+  final FashionCategory category;
+
+  const _Story({
+    required this.label,
+    required this.color,
+    required this.initial,
+    required this.hasNew,
+    required this.title,
+    required this.detail,
+    required this.category,
+  });
+
+  _Story copyWith({bool? hasNew}) => _Story(
+        label: label,
+        color: color,
+        initial: initial,
+        hasNew: hasNew ?? this.hasNew,
+        title: title,
+        detail: detail,
+        category: category,
+      );
 }
 
-// ─── Story Bubble ─────────────────────────────────────────────────────────────
 class _StoryBubble extends StatelessWidget {
-  final String initial, label;
+  final String initial;
+  final String label;
   final Color color;
-  final bool hasNew, isMe;
-  const _StoryBubble({required this.initial, required this.label,
-      required this.color, required this.hasNew, required this.isMe});
+  final bool hasNew;
+  final bool isMe;
+
+  const _StoryBubble({
+    required this.initial,
+    required this.label,
+    required this.color,
+    required this.hasNew,
+    required this.isMe,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(right: 16),
+      width: 76,
+      margin: const EdgeInsets.only(right: 12),
       child: Column(
         children: [
-          Container(
-            width: 66, height: 66,
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            width: 68,
+            height: 68,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: hasNew
                   ? const LinearGradient(
                       colors: [AppColors.primary, AppColors.primaryLight],
-                      begin: Alignment.topLeft, end: Alignment.bottomRight)
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
                   : null,
               color: hasNew ? null : AppColors.border,
             ),
@@ -260,64 +586,305 @@ class _StoryBubble extends StatelessWidget {
               padding: const EdgeInsets.all(2),
               child: isMe
                   ? Container(
-                      decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.accentBg),
-                      child: Icon(Icons.add_rounded, color: AppColors.primary, size: 26),
+                      decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.accentBg),
+                      child: const Icon(Icons.add_rounded, color: AppColors.primary, size: 26),
                     )
                   : CircleAvatar(
                       backgroundColor: color,
-                      child: Text(initial,
-                          style: GoogleFonts.dmSans(
-                              color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)),
+                      child: Text(
+                        initial,
+                        style: GoogleFonts.dmSans(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                        ),
+                      ),
                     ),
             ),
           ),
-          const SizedBox(height: 5),
-          Text(label,
-              style: GoogleFonts.dmSans(
-                  fontSize: 10,
-                  fontWeight: hasNew ? FontWeight.w600 : FontWeight.w400,
-                  color: hasNew ? AppColors.textPrimary : AppColors.textHint)),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.dmSans(
+              fontSize: 10,
+              fontWeight: hasNew ? FontWeight.w700 : FontWeight.w500,
+              color: hasNew ? AppColors.textPrimary : AppColors.textHint,
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-// ─── Filter Header ────────────────────────────────────────────────────────────
+class _StoryViewer extends StatefulWidget {
+  final List<_Story> stories;
+  final int initialIndex;
+  final ValueChanged<int> onViewed;
+
+  const _StoryViewer({
+    required this.stories,
+    required this.initialIndex,
+    required this.onViewed,
+  });
+
+  @override
+  State<_StoryViewer> createState() => _StoryViewerState();
+}
+
+class _StoryViewerState extends State<_StoryViewer> {
+  late final PageController _controller;
+  late int _index;
+  Timer? _timer;
+  double _progress = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _index = widget.initialIndex;
+    _controller = PageController(initialPage: _index);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onViewed(_index);
+    });
+    _startTimer();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _progress = 0;
+    _timer = Timer.periodic(const Duration(milliseconds: 80), (timer) {
+      if (!mounted) return;
+      setState(() => _progress = (_progress + 0.02).clamp(0, 1));
+      if (_progress >= 1) _next();
+    });
+  }
+
+  void _next() {
+    if (_index == widget.stories.length - 1) {
+      Navigator.pop(context);
+      return;
+    }
+    _controller.nextPage(duration: const Duration(milliseconds: 240), curve: Curves.easeOut);
+  }
+
+  void _previous() {
+    if (_index == 0) {
+      _startTimer();
+      return;
+    }
+    _controller.previousPage(duration: const Duration(milliseconds: 240), curve: Curves.easeOut);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            PageView.builder(
+              controller: _controller,
+              itemCount: widget.stories.length,
+              onPageChanged: (value) {
+                setState(() => _index = value);
+                widget.onViewed(value);
+                _startTimer();
+              },
+              itemBuilder: (_, index) => _StoryPage(story: widget.stories[index]),
+            ),
+            Positioned(
+              top: 10,
+              left: 10,
+              right: 10,
+              child: Row(
+                children: List.generate(widget.stories.length, (index) {
+                  final value = index < _index ? 1.0 : (index == _index ? _progress : 0.0);
+                  return Expanded(
+                    child: Container(
+                      height: 3,
+                      margin: const EdgeInsets.symmetric(horizontal: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.28),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: value,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+            Positioned.fill(
+              top: 48,
+              child: Row(
+                children: [
+                  Expanded(child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: _previous)),
+                  Expanded(child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: _next)),
+                ],
+              ),
+            ),
+            Positioned(
+              top: 24,
+              right: 8,
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close_rounded, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StoryPage extends StatelessWidget {
+  final _Story story;
+
+  const _StoryPage({required this.story});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [story.color, Color.lerp(story.color, Colors.black, 0.52)!],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 58, 22, 28),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.white.withOpacity(0.18),
+                  child: Text(
+                    story.initial,
+                    style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  story.label,
+                  style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14),
+                ),
+              ],
+            ),
+            const Spacer(),
+            Center(
+              child: Container(
+                width: 210,
+                height: 210,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white.withOpacity(0.25)),
+                ),
+                child: Center(
+                  child: FashionIcon(
+                    category: story.category,
+                    color: Colors.white,
+                    size: 112,
+                    strokeWidth: 2.5,
+                  ),
+                ),
+              ),
+            ),
+            const Spacer(),
+            Text(
+              story.title,
+              style: GoogleFonts.playfairDisplay(
+                color: Colors.white,
+                fontSize: 32,
+                fontWeight: FontWeight.w800,
+                height: 1.05,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              story.detail,
+              style: GoogleFonts.dmSans(color: Colors.white.withOpacity(0.86), fontSize: 15, height: 1.35),
+            ),
+            const SizedBox(height: 20),
+            _PillButton(
+              icon: Icons.bookmark_add_outlined,
+              label: 'Guardar idea',
+              color: Colors.white,
+              foreground: AppColors.textPrimary,
+              onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Idea guardada de ${story.label}')),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _FilterDelegate extends SliverPersistentHeaderDelegate {
   final List<String> filters;
   final int activeFilter;
-  final Function(int) onChanged;
-  const _FilterDelegate({required this.filters, required this.activeFilter, required this.onChanged});
+  final ValueChanged<int> onChanged;
+
+  const _FilterDelegate({
+    required this.filters,
+    required this.activeFilter,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
       color: AppColors.bgCard,
-      height: 52,
+      height: 54,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         itemCount: filters.length,
-        itemBuilder: (_, i) {
-          final on = activeFilter == i;
+        itemBuilder: (_, index) {
+          final isActive = activeFilter == index;
           return GestureDetector(
-            onTap: () => onChanged(i),
+            onTap: () => onChanged(index),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
               decoration: BoxDecoration(
-                color: on ? AppColors.primary : Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                    color: on ? AppColors.primary : AppColors.border, width: 1.5),
+                color: isActive ? AppColors.primary : AppColors.bgPage,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: isActive ? AppColors.primary : AppColors.border),
               ),
-              child: Text(filters[i],
-                  style: GoogleFonts.dmSans(
-                      fontSize: 12,
-                      fontWeight: on ? FontWeight.w700 : FontWeight.w500,
-                      color: on ? Colors.white : AppColors.textSec)),
+              child: Text(
+                filters[index],
+                style: GoogleFonts.dmSans(
+                  fontSize: 12,
+                  fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+                  color: isActive ? Colors.white : AppColors.textSec,
+                ),
+              ),
             ),
           );
         },
@@ -325,17 +892,72 @@ class _FilterDelegate extends SliverPersistentHeaderDelegate {
     );
   }
 
-  @override double get maxExtent => 52;
-  @override double get minExtent => 52;
-  @override bool shouldRebuild(_FilterDelegate old) => old.activeFilter != activeFilter;
+  @override
+  double get maxExtent => 54;
+
+  @override
+  double get minExtent => 54;
+
+  @override
+  bool shouldRebuild(_FilterDelegate oldDelegate) => oldDelegate.activeFilter != activeFilter;
 }
 
-// ─── Post Card ────────────────────────────────────────────────────────────────
+class _FeedStatusBar extends StatelessWidget {
+  final String title;
+  final String subtitle;
+
+  const _FeedStatusBar({required this.title, required this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.bgPage,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w800)),
+                Text(subtitle, style: GoogleFonts.dmSans(fontSize: 12, color: AppColors.textSec)),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              color: AppColors.bgCard,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.tune_rounded, color: AppColors.primary, size: 15),
+                const SizedBox(width: 5),
+                Text('Curado', style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w700)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PostCard extends StatefulWidget {
   final PostModel post;
   final VoidCallback onLike;
   final VoidCallback onComment;
-  const _PostCard({required this.post, required this.onLike, required this.onComment});
+  final VoidCallback onOpenOutfit;
+
+  const _PostCard({
+    super.key,
+    required this.post,
+    required this.onLike,
+    required this.onComment,
+    required this.onOpenOutfit,
+  });
 
   @override
   State<_PostCard> createState() => _PostCardState();
@@ -343,30 +965,35 @@ class _PostCard extends StatefulWidget {
 
 class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixin {
   bool _saved = false;
-  late AnimationController _heartCtrl;
-  late Animation<double> _heartAnim;
+  bool _following = false;
+  late final AnimationController _heartController;
+  late final Animation<double> _heartScale;
 
   @override
   void initState() {
     super.initState();
-    _heartCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
-    _heartAnim = Tween<double>(begin: 1.0, end: 1.4)
-        .chain(CurveTween(curve: Curves.elasticOut))
-        .animate(_heartCtrl);
+    _heartController = AnimationController(vsync: this, duration: const Duration(milliseconds: 360));
+    _heartScale = Tween<double>(begin: 0.7, end: 1.45)
+        .chain(CurveTween(curve: Curves.easeOutBack))
+        .animate(_heartController);
   }
 
   @override
-  void dispose() { _heartCtrl.dispose(); super.dispose(); }
-
-  void _handleLike() {
-    widget.onLike();
-    _heartCtrl.forward(from: 0);
+  void dispose() {
+    _heartController.dispose();
+    super.dispose();
   }
 
-  String _fmt(int n) {
-    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
-    if (n >= 1000)    return '${(n / 1000).toStringAsFixed(n % 1000 >= 100 ? 1 : 0)}K';
-    return n.toString();
+  void _handleLike() {
+    HapticFeedback.selectionClick();
+    widget.onLike();
+    _heartController.forward(from: 0);
+  }
+
+  String _fmt(int value) {
+    if (value >= 1000000) return '${(value / 1000000).toStringAsFixed(1)}M';
+    if (value >= 1000) return '${(value / 1000).toStringAsFixed(value % 1000 >= 100 ? 1 : 0)}K';
+    return value.toString();
   }
 
   @override
@@ -377,31 +1004,27 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
-          // ── Header ──────────────────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 8, 10),
             child: Row(
               children: [
-                // Avatar with gradient ring
                 Container(
-                  width: 44, height: 44,
+                  width: 44,
+                  height: 44,
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
                       colors: [AppColors.primary, AppColors.primaryLight],
-                      begin: Alignment.topLeft, end: Alignment.bottomRight,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
                   ),
                   padding: const EdgeInsets.all(2),
-                  child: Container(
-                    decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.bgCard),
-                    padding: const EdgeInsets.all(1.5),
-                    child: CircleAvatar(
-                      backgroundColor: widget.post.avatarColor,
-                      child: Text(widget.post.avatar,
-                          style: GoogleFonts.dmSans(
-                              color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+                  child: CircleAvatar(
+                    backgroundColor: widget.post.avatarColor,
+                    child: Text(
+                      widget.post.avatar,
+                      style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16),
                     ),
                   ),
                 ),
@@ -410,211 +1033,209 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(widget.post.username,
-                          style: GoogleFonts.dmSans(
-                              fontWeight: FontWeight.w700, fontSize: 14,
-                              color: AppColors.textPrimary, letterSpacing: -0.2)),
-                      const SizedBox(height: 1),
-                      Text(widget.post.timeAgo,
-                          style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint)),
+                      Text(
+                        widget.post.username,
+                        style: GoogleFonts.dmSans(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      Text(widget.post.timeAgo, style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint)),
                     ],
                   ),
                 ),
-                // Seguir button
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.accentBg,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.primaryMed.withOpacity(0.4)),
+                TextButton(
+                  onPressed: () => setState(() => _following = !_following),
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(78, 34),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    foregroundColor: _following ? AppColors.textSec : AppColors.primary,
+                    backgroundColor: _following ? AppColors.bgPage : AppColors.accentBg,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: Text('Seguir',
-                      style: GoogleFonts.dmSans(
-                          color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w700)),
+                  child: Text(_following ? 'Siguiendo' : 'Seguir', style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 12)),
                 ),
                 IconButton(
+                  tooltip: 'Mas opciones',
                   onPressed: () => _showOptions(context),
                   icon: const Icon(Icons.more_horiz, color: AppColors.textHint, size: 20),
-                  padding: const EdgeInsets.all(8),
-                  constraints: const BoxConstraints(),
                 ),
               ],
             ),
           ),
-
-          // ── Image ───────────────────────────────────────────────────────────
           GestureDetector(
+            onTap: widget.onOpenOutfit,
             onDoubleTap: _handleLike,
             child: SizedBox(
               width: double.infinity,
-              height: 400,
+              height: 390,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Container(
+                  DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [widget.post.placeholderColor, widget.post.placeholderColorEnd],
-                        begin: Alignment.topLeft, end: Alignment.bottomRight,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
                     ),
                   ),
                   Positioned(
-                    right: -24, bottom: -24,
+                    right: -30,
+                    bottom: -34,
                     child: FashionIcon(
                       category: widget.post.fashionCategory,
-                      color: Colors.white.withOpacity(0.06),
-                      size: 300, strokeWidth: 3.0,
+                      color: Colors.white.withOpacity(0.07),
+                      size: 310,
+                      strokeWidth: 3,
                     ),
                   ),
                   Center(
                     child: Container(
-                      width: 120, height: 120,
+                      width: 128,
+                      height: 128,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.12),
+                        color: Colors.white.withOpacity(0.14),
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white.withOpacity(0.25), width: 1.5),
+                        border: Border.all(color: Colors.white.withOpacity(0.28)),
                       ),
-                      padding: const EdgeInsets.all(24),
-                      child: FashionIcon(
-                        category: widget.post.fashionCategory,
-                        color: Colors.white.withOpacity(0.9),
-                        size: 72, strokeWidth: 2.0,
+                      child: Center(
+                        child: FashionIcon(
+                          category: widget.post.fashionCategory,
+                          color: Colors.white.withOpacity(0.92),
+                          size: 76,
+                          strokeWidth: 2.2,
+                        ),
                       ),
                     ),
                   ),
-                  // Bottom gradient
                   Positioned(
-                    bottom: 0, left: 0, right: 0,
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
                     child: Container(
-                      padding: const EdgeInsets.fromLTRB(16, 64, 16, 14),
+                      padding: const EdgeInsets.fromLTRB(16, 72, 16, 14),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Colors.transparent, Colors.black.withOpacity(0.65)],
-                          begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                          colors: [Colors.transparent, Colors.black.withOpacity(0.68)],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
                         ),
                       ),
                       child: Row(
                         children: [
                           Expanded(
-                            child: Text(widget.post.outfitTitle,
-                                style: GoogleFonts.playfairDisplay(
-                                    color: Colors.white, fontSize: 16,
-                                    fontWeight: FontWeight.w700, letterSpacing: 0.3)),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.white.withOpacity(0.3)),
+                            child: Text(
+                              widget.post.outfitTitle,
+                              style: GoogleFonts.playfairDisplay(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
-                            child: Text('Ver outfit',
-                                style: GoogleFonts.dmSans(
-                                    color: Colors.white, fontSize: 10,
-                                    fontWeight: FontWeight.w600)),
                           ),
+                          _MiniOverlayButton(label: 'Ver outfit', onTap: widget.onOpenOutfit),
                         ],
                       ),
                     ),
                   ),
-                  // Heart like animation
                   Center(
-                    child: ScaleTransition(
-                      scale: _heartAnim,
-                      child: IgnorePointer(
-                        child: AnimatedBuilder(
-                          animation: _heartCtrl,
-                          builder: (_, __) => _heartCtrl.value > 0
-                              ? Icon(Icons.favorite_rounded,
-                                  color: Colors.white.withOpacity(1 - _heartCtrl.value),
-                                  size: 90)
-                              : const SizedBox.shrink(),
-                        ),
-                      ),
+                    child: AnimatedBuilder(
+                      animation: _heartController,
+                      builder: (_, __) {
+                        if (_heartController.value == 0 || _heartController.value == 1) {
+                          return const SizedBox.shrink();
+                        }
+                        return Transform.scale(
+                          scale: _heartScale.value,
+                          child: Icon(
+                            Icons.favorite_rounded,
+                            color: Colors.white.withOpacity(1 - _heartController.value),
+                            size: 88,
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],
               ),
             ),
           ),
-
-          // ── Action Row ──────────────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Row(
               children: [
                 _ActionBtn(
                   icon: widget.post.isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                  color: widget.post.isLiked ? const Color(0xFFEF5350) : AppColors.textPrimary,
+                  color: widget.post.isLiked ? const Color(0xFFE74C3C) : AppColors.textPrimary,
                   onTap: _handleLike,
-                  scale: _heartAnim,
                 ),
-                _ActionBtn(
-                  icon: Icons.chat_bubble_outline_rounded,
-                  color: AppColors.textPrimary,
-                  onTap: widget.onComment,
-                ),
-                _ActionBtn(
-                  icon: Icons.near_me_outlined,
-                  color: AppColors.textPrimary,
-                  onTap: () => _sharePost(context),
-                ),
+                _ActionBtn(icon: Icons.chat_bubble_outline_rounded, color: AppColors.textPrimary, onTap: widget.onComment),
+                _ActionBtn(icon: Icons.near_me_outlined, color: AppColors.textPrimary, onTap: () => _sharePost(context)),
                 const Spacer(),
                 _ActionBtn(
                   icon: _saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
                   color: _saved ? AppColors.primary : AppColors.textPrimary,
-                  onTap: () => setState(() => _saved = !_saved),
+                  onTap: () {
+                    setState(() => _saved = !_saved);
+                    _toast(context, _saved ? 'Publicacion guardada' : 'Guardado eliminado');
+                  },
                 ),
               ],
             ),
           ),
-
-          // ── Caption & Stats ─────────────────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 2, 16, 14),
+            padding: const EdgeInsets.fromLTRB(16, 2, 16, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Likes
-                Text('${_fmt(widget.post.likes)} me gusta',
-                    style: GoogleFonts.dmSans(
-                        fontWeight: FontWeight.w700, fontSize: 13,
-                        color: AppColors.textPrimary)),
-                const SizedBox(height: 5),
-                // Caption with username prefix
-                RichText(
-                  text: TextSpan(children: [
-                    TextSpan(text: '${widget.post.username}  ',
-                        style: GoogleFonts.dmSans(
-                            fontWeight: FontWeight.w700, fontSize: 13,
-                            color: AppColors.textPrimary)),
-                    TextSpan(text: widget.post.description,
-                        style: GoogleFonts.dmSans(
-                            fontSize: 13, color: AppColors.textSec, height: 1.45)),
-                  ]),
-                ),
-                const SizedBox(height: 7),
-                // Hashtags
-                Wrap(
-                  spacing: 6, runSpacing: 2,
-                  children: widget.post.tags.map((tag) => Text(
-                    '#$tag',
-                    style: GoogleFonts.dmSans(
-                        fontSize: 12, color: AppColors.primary,
-                        fontWeight: FontWeight.w600),
-                  )).toList(),
+                Text(
+                  '${_fmt(widget.post.likes)} me gusta',
+                  style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: 6),
-                // Comments link
+                RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '${widget.post.username}  ',
+                        style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.textPrimary),
+                      ),
+                      TextSpan(
+                        text: widget.post.description,
+                        style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.textSec, height: 1.45),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: widget.post.tags
+                      .map(
+                        (tag) => GestureDetector(
+                          onTap: () => _toast(context, 'Explorando #$tag'),
+                          child: Text(
+                            '#$tag',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 12,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+                const SizedBox(height: 8),
                 GestureDetector(
                   onTap: widget.onComment,
                   child: Text(
                     'Ver los ${_fmt(widget.post.comments)} comentarios',
-                    style: GoogleFonts.dmSans(
-                        fontSize: 12, color: AppColors.textHint,
-                        fontWeight: FontWeight.w500),
+                    style: GoogleFonts.dmSans(fontSize: 12, color: AppColors.textHint, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -627,82 +1248,119 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
 
   void _showOptions(BuildContext context) {
     showModalBottomSheet(
-      context: context, backgroundColor: Colors.transparent,
-      builder: (_) => _BottomSheet(child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            _SheetHandle(),
-            const SizedBox(height: 6),
-            ListTile(
-              leading: Container(width: 36, height: 36,
-                  decoration: BoxDecoration(color: AppColors.accentBg, borderRadius: BorderRadius.circular(10)),
-                  child: const Icon(Icons.bookmark_add_outlined, color: AppColors.primary, size: 18)),
-              title: Text('Guardar', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600)),
-              onTap: () { setState(() => _saved = true); Navigator.pop(context); }),
-            ListTile(
-              leading: Container(width: 36, height: 36,
-                  decoration: BoxDecoration(color: AppColors.accentBg, borderRadius: BorderRadius.circular(10)),
-                  child: const Icon(Icons.share_outlined, color: AppColors.primary, size: 18)),
-              title: Text('Compartir', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600)),
-              onTap: () { Navigator.pop(context); _sharePost(context); }),
-            ListTile(
-              leading: Container(width: 36, height: 36,
-                  decoration: BoxDecoration(color: AppColors.accentBg, borderRadius: BorderRadius.circular(10)),
-                  child: const Icon(Icons.person_add_outlined, color: AppColors.primary, size: 18)),
-              title: Text('Seguir a @${widget.post.username}', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600)),
-              onTap: () { Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text('Siguiendo a @${widget.post.username}'))); }),
-            ListTile(
-              leading: Container(width: 36, height: 36,
-                  decoration: BoxDecoration(color: Colors.red.withOpacity(0.08), borderRadius: BorderRadius.circular(10)),
-                  child: const Icon(Icons.flag_outlined, color: Colors.red, size: 18)),
-              title: Text('Reportar', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, color: Colors.red)),
-              onTap: () { Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Publicación reportada'))); }),
-            const SizedBox(height: 8),
-          ],
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _BottomSheet(
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              _SheetHandle(),
+              const SizedBox(height: 8),
+              _OptionTile(
+                icon: _saved ? Icons.bookmark_remove_outlined : Icons.bookmark_add_outlined,
+                title: _saved ? 'Quitar guardado' : 'Guardar publicacion',
+                onTap: () {
+                  setState(() => _saved = !_saved);
+                  Navigator.pop(context);
+                  _toast(context, _saved ? 'Publicacion guardada' : 'Guardado eliminado');
+                },
+              ),
+              _OptionTile(
+                icon: Icons.share_outlined,
+                title: 'Compartir',
+                onTap: () {
+                  Navigator.pop(context);
+                  _sharePost(context);
+                },
+              ),
+              _OptionTile(
+                icon: _following ? Icons.person_remove_outlined : Icons.person_add_outlined,
+                title: _following ? 'Dejar de seguir a @${widget.post.username}' : 'Seguir a @${widget.post.username}',
+                onTap: () {
+                  setState(() => _following = !_following);
+                  Navigator.pop(context);
+                  _toast(context, _following ? 'Ahora sigues a @${widget.post.username}' : 'Ya no sigues a @${widget.post.username}');
+                },
+              ),
+              _OptionTile(
+                icon: Icons.flag_outlined,
+                title: 'Reportar',
+                danger: true,
+                onTap: () {
+                  Navigator.pop(context);
+                  _toast(context, 'Reporte enviado para revision');
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
-      )),
+      ),
     );
   }
 
   void _sharePost(BuildContext context) {
+    Clipboard.setData(ClipboardData(text: 'https://outfy.app/post/${widget.post.username}'));
+    _toast(context, 'Enlace copiado al portapapeles');
+  }
+
+  void _toast(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Enlace copiado al portapapeles',
-            style: GoogleFonts.dmSans(fontWeight: FontWeight.w500))));
+      SnackBar(content: Text(message, style: GoogleFonts.dmSans(fontWeight: FontWeight.w600))),
+    );
   }
 }
 
-// ─── Action Button ────────────────────────────────────────────────────────────
 class _ActionBtn extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
-  final Animation<double>? scale;
-  const _ActionBtn({required this.icon, required this.color, required this.onTap, this.scale});
+
+  const _ActionBtn({required this.icon, required this.color, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    Widget btn = GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Icon(icon, size: 24, color: color),
-      ),
+    return IconButton(
+      onPressed: onTap,
+      icon: Icon(icon, size: 24, color: color),
+      padding: const EdgeInsets.all(8),
+      constraints: const BoxConstraints(minWidth: 42, minHeight: 42),
+      splashRadius: 22,
     );
-    if (scale != null) {
-      return ScaleTransition(scale: scale!, child: btn);
-    }
-    return btn;
   }
 }
 
-// ─── Bottom Sheet Wrapper ─────────────────────────────────────────────────────
+class _MiniOverlayButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _MiniOverlayButton({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white.withOpacity(0.18),
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+          child: Text(
+            label,
+            style: GoogleFonts.dmSans(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _BottomSheet extends StatelessWidget {
   final Widget child;
+
   const _BottomSheet({required this.child});
 
   @override
@@ -718,39 +1376,151 @@ class _BottomSheet extends StatelessWidget {
   }
 }
 
-// ─── Sheet Handle ─────────────────────────────────────────────────────────────
 class _SheetHandle extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => Center(
-    child: Container(
-      width: 40, height: 4,
-      decoration: BoxDecoration(
-          color: AppColors.border, borderRadius: BorderRadius.circular(2)),
-    ),
-  );
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        width: 40,
+        height: 4,
+        decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
+      ),
+    );
+  }
 }
 
-// ─── Comments Sheet ───────────────────────────────────────────────────────────
+class _QuickActionTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+
+  const _QuickActionTile({required this.icon, required this.title, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.bgPage,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            children: [
+              Icon(icon, color: AppColors.primary, size: 24),
+              const SizedBox(height: 8),
+              Text(title, style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 13)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OptionTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+  final bool danger;
+
+  const _OptionTile({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.danger = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = danger ? const Color(0xFFD64545) : AppColors.primary;
+    return ListTile(
+      leading: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: color, size: 19),
+      ),
+      title: Text(
+        title,
+        style: GoogleFonts.dmSans(
+          fontWeight: FontWeight.w700,
+          color: danger ? color : AppColors.textPrimary,
+        ),
+      ),
+      onTap: onTap,
+    );
+  }
+}
+
+class _PillButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final Color foreground;
+  final VoidCallback onTap;
+
+  const _PillButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.foreground,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: color,
+      borderRadius: BorderRadius.circular(30),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(30),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: foreground, size: 18),
+              const SizedBox(width: 8),
+              Text(label, style: GoogleFonts.dmSans(color: foreground, fontWeight: FontWeight.w800)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _CommentsSheet extends StatefulWidget {
   final ScrollController scrollController;
   final String username;
-  const _CommentsSheet({required this.scrollController, required this.username});
+  final List<Map<String, String>> comments;
+  final VoidCallback onChanged;
+
+  const _CommentsSheet({
+    required this.scrollController,
+    required this.username,
+    required this.comments,
+    required this.onChanged,
+  });
 
   @override
   State<_CommentsSheet> createState() => _CommentsSheetState();
 }
 
 class _CommentsSheetState extends State<_CommentsSheet> {
-  final _ctrl = TextEditingController();
-  final List<Map<String, String>> _comments = [
-    {'user': 'carmen.b',     'text': 'Esta combinación es perfecta. Donde es el blazer?', 'time': '5 min'},
-    {'user': 'ana.trends',   'text': 'Me tienes obsesionada con este look', 'time': '12 min'},
-    {'user': 'paula.style',  'text': 'Inspiración total para mañana', 'time': '23 min'},
-    {'user': 'sara.moda',    'text': 'Los colores tierra son mi nueva obsesión', 'time': '1h'},
-  ];
+  final _controller = TextEditingController();
 
   @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -758,68 +1528,69 @@ class _CommentsSheetState extends State<_CommentsSheet> {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-          child: Column(children: [
-            _SheetHandle(),
-            const SizedBox(height: 12),
-            Text('Comentarios', style: GoogleFonts.dmSans(
-                fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-          ]),
+          child: Column(
+            children: [
+              _SheetHandle(),
+              const SizedBox(height: 12),
+              Text(
+                'Comentarios',
+                style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+              ),
+              Text(
+                '@${widget.username}',
+                style: GoogleFonts.dmSans(fontSize: 12, color: AppColors.textHint, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
         ),
         const Divider(height: 1),
         Expanded(
           child: ListView.builder(
             controller: widget.scrollController,
             padding: const EdgeInsets.all(16),
-            itemCount: _comments.length,
-            itemBuilder: (_, i) => _CommentRow(comment: _comments[i]),
+            itemCount: widget.comments.length,
+            itemBuilder: (_, index) => _CommentRow(comment: widget.comments[index]),
           ),
         ),
         Container(
-          padding: EdgeInsets.only(left: 14, right: 14, top: 10,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 14),
+          padding: EdgeInsets.only(left: 14, right: 14, top: 10, bottom: MediaQuery.of(context).viewInsets.bottom + 14),
           decoration: const BoxDecoration(
-              color: AppColors.bgCard,
-              border: Border(top: BorderSide(color: AppColors.border))),
+            color: AppColors.bgCard,
+            border: Border(top: BorderSide(color: AppColors.border)),
+          ),
           child: Row(
             children: [
-              Container(width: 34, height: 34,
-                  decoration: const BoxDecoration(
-                      shape: BoxShape.circle, color: AppColors.accentBg),
-                  child: const Center(child: Icon(Icons.person, size: 18, color: AppColors.primary))),
+              const CircleAvatar(
+                radius: 17,
+                backgroundColor: AppColors.accentBg,
+                child: Icon(Icons.person, size: 18, color: AppColors.primary),
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: TextField(
-                  controller: _ctrl,
+                  controller: _controller,
+                  minLines: 1,
+                  maxLines: 3,
                   style: GoogleFonts.dmSans(fontSize: 13),
-                  decoration: InputDecoration(
-                    hintText: 'Añade un comentario...',
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: const InputDecoration(
+                    hintText: 'Anade un comentario...',
                     isDense: true,
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        borderSide: const BorderSide(color: AppColors.border)),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        borderSide: const BorderSide(color: AppColors.border)),
-                    focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
                   ),
                 ),
               ),
               const SizedBox(width: 10),
-              GestureDetector(
-                onTap: () {
-                  if (_ctrl.text.isNotEmpty) {
-                    setState(() { _comments.insert(0, {'user': 'tú', 'text': _ctrl.text, 'time': 'Ahora'}); _ctrl.clear(); });
-                  }
+              IconButton.filled(
+                onPressed: () {
+                  final text = _controller.text.trim();
+                  if (text.isEmpty) return;
+                  setState(() {
+                    widget.comments.insert(0, {'user': 'tu', 'text': text, 'time': 'Ahora'});
+                    _controller.clear();
+                  });
+                  widget.onChanged();
                 },
-                child: Container(
-                  width: 36, height: 36,
-                  decoration: BoxDecoration(
-                      color: AppColors.primary, shape: BoxShape.circle),
-                  child: const Icon(Icons.send_rounded, color: Colors.white, size: 16),
-                ),
+                style: IconButton.styleFrom(backgroundColor: AppColors.primary),
+                icon: const Icon(Icons.send_rounded, color: Colors.white, size: 17),
               ),
             ],
           ),
@@ -831,6 +1602,7 @@ class _CommentsSheetState extends State<_CommentsSheet> {
 
 class _CommentRow extends StatelessWidget {
   final Map<String, String> comment;
+
   const _CommentRow({required this.comment});
 
   @override
@@ -840,30 +1612,35 @@ class _CommentRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 34, height: 34,
-            decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.accentBg),
-            child: Center(child: Text(comment['user']![0].toUpperCase(),
-                style: GoogleFonts.dmSans(
-                    color: AppColors.primary, fontWeight: FontWeight.w800, fontSize: 13))),
+          CircleAvatar(
+            radius: 17,
+            backgroundColor: AppColors.accentBg,
+            child: Text(
+              comment['user']![0].toUpperCase(),
+              style: GoogleFonts.dmSans(color: AppColors.primary, fontWeight: FontWeight.w800, fontSize: 13),
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                RichText(text: TextSpan(children: [
-                  TextSpan(text: '${comment['user']}  ',
-                      style: GoogleFonts.dmSans(
-                          fontWeight: FontWeight.w700, fontSize: 13,
-                          color: AppColors.textPrimary)),
-                  TextSpan(text: comment['text'],
-                      style: GoogleFonts.dmSans(
-                          fontSize: 13, color: AppColors.textSec, height: 1.4)),
-                ])),
+                RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '${comment['user']}  ',
+                        style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.textPrimary),
+                      ),
+                      TextSpan(
+                        text: comment['text'],
+                        style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.textSec, height: 1.4),
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text(comment['time']!,
-                    style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint)),
+                Text(comment['time']!, style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint)),
               ],
             ),
           ),
@@ -873,125 +1650,313 @@ class _CommentRow extends StatelessWidget {
   }
 }
 
-// ─── Notifications Sheet ──────────────────────────────────────────────────────
-class _NotificationsSheet extends StatelessWidget {
+class _NotificationsSheet extends StatefulWidget {
   final ScrollController controller;
+
   const _NotificationsSheet({required this.controller});
 
   @override
+  State<_NotificationsSheet> createState() => _NotificationsSheetState();
+}
+
+class _NotificationsSheetState extends State<_NotificationsSheet> {
+  late final List<_NotificationItem> _items = [
+    _NotificationItem('sofia.styles', 'le dio like a tu outfit', '2 min', Icons.favorite_rounded, AppColors.primaryMed),
+    _NotificationItem('marta.fashion', 'comento tu publicacion', '15 min', Icons.chat_bubble_rounded, const Color(0xFF8E44AD)),
+    _NotificationItem('lucia.vintage', 'empezo a seguirte', '1 h', Icons.person_add_rounded, const Color(0xFF00838F)),
+    _NotificationItem('andrea.glam', 'guardo tu publicacion', '2 h', Icons.bookmark_rounded, const Color(0xFFFF9800)),
+    _NotificationItem('carmen.b', 'te menciono en un comentario', '3 h', Icons.alternate_email, const Color(0xFF2E7D32)),
+  ];
+
+  @override
   Widget build(BuildContext context) {
-    final notifs = [
-      ('sofia.styles',  'le dio like a tu outfit',       '2 min',  Icons.favorite_rounded,  AppColors.primaryMed),
-      ('marta.fashion', 'comentó tu publicación',         '15 min', Icons.chat_bubble_rounded, Color(0xFF9C27B0)),
-      ('lucia.vintage', 'empezó a seguirte',              '1h',     Icons.person_add_rounded,  Color(0xFF00838F)),
-      ('andrea.glam',   'guardó tu publicación',          '2h',     Icons.bookmark_rounded,    Color(0xFFFF9800)),
-      ('carmen.b',      'te mencionó en un comentario',   '3h',     Icons.alternate_email,     Color(0xFF2E7D32)),
-    ];
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-          child: Column(children: [
-            _SheetHandle(),
-            const SizedBox(height: 12),
-            Text('Notificaciones', style: GoogleFonts.dmSans(
-                fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-          ]),
+          child: Column(
+            children: [
+              _SheetHandle(),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Notificaciones',
+                      style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => setState(() => _items.clear()),
+                    child: Text('Limpiar', style: GoogleFonts.dmSans(fontWeight: FontWeight.w800)),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
         const Divider(height: 1),
         Expanded(
-          child: ListView.builder(
-            controller: controller,
-            itemCount: notifs.length,
-            itemBuilder: (_, i) {
-              final n = notifs[i];
-              return ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                leading: Container(
-                  width: 42, height: 42,
-                  decoration: BoxDecoration(
-                      color: n.$5.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-                  child: Icon(n.$4, color: n.$5, size: 20)),
-                title: RichText(text: TextSpan(children: [
-                  TextSpan(text: '${n.$1}  ',
-                      style: GoogleFonts.dmSans(fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary, fontSize: 13)),
-                  TextSpan(text: n.$2,
-                      style: GoogleFonts.dmSans(color: AppColors.textSec, fontSize: 13)),
-                ])),
-                trailing: Text(n.$3,
-                    style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint)),
-              );
-            },
-          ),
+          child: _items.isEmpty
+              ? Center(
+                  child: Text(
+                    'Todo al dia',
+                    style: GoogleFonts.dmSans(color: AppColors.textHint, fontWeight: FontWeight.w700),
+                  ),
+                )
+              : ListView.builder(
+                  controller: widget.controller,
+                  itemCount: _items.length,
+                  itemBuilder: (_, index) {
+                    final item = _items[index];
+                    return Dismissible(
+                      key: ValueKey('${item.user}-${item.time}'),
+                      direction: DismissDirection.endToStart,
+                      background: Container(
+                        color: const Color(0xFFD64545),
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        child: const Icon(Icons.delete_outline, color: Colors.white),
+                      ),
+                      onDismissed: (_) => setState(() => _items.removeAt(index)),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        leading: Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(color: item.color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                          child: Icon(item.icon, color: item.color, size: 20),
+                        ),
+                        title: RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: '${item.user}  ',
+                                style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, color: AppColors.textPrimary, fontSize: 13),
+                              ),
+                              TextSpan(
+                                text: item.text,
+                                style: GoogleFonts.dmSans(color: AppColors.textSec, fontSize: 13),
+                              ),
+                            ],
+                          ),
+                        ),
+                        trailing: Text(item.time, style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint)),
+                        onTap: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Abriendo actividad de ${item.user}'))),
+                      ),
+                    );
+                  },
+                ),
         ),
       ],
     );
   }
 }
 
-// ─── Search Sheet ─────────────────────────────────────────────────────────────
+class _NotificationItem {
+  final String user;
+  final String text;
+  final String time;
+  final IconData icon;
+  final Color color;
+
+  const _NotificationItem(this.user, this.text, this.time, this.icon, this.color);
+}
+
 class _SearchSheet extends StatefulWidget {
+  final ValueChanged<String> onSelect;
+
+  const _SearchSheet({required this.onSelect});
+
   @override
   State<_SearchSheet> createState() => _SearchSheetState();
 }
 
 class _SearchSheetState extends State<_SearchSheet> {
-  final _ctrl = TextEditingController();
-  final _results = ['sofia.styles', 'marta.fashion', 'lucia.vintage', 'andrea.glam', 'carmen.b'];
-  List<String> _filtered = [];
+  final _controller = TextEditingController();
+  final Set<String> _following = {};
+  final List<_SearchResult> _results = const [
+    _SearchResult('sofia.styles', 'Capsulas de oficina', Icons.work_outline),
+    _SearchResult('marta.fashion', 'Streetwear y color', Icons.palette_outlined),
+    _SearchResult('lucia.vintage', 'Vintage sostenible', Icons.recycling_outlined),
+    _SearchResult('andrea.glam', 'Looks de noche', Icons.nightlife_outlined),
+    _SearchResult('carmen.b', 'Minimal mediterraneo', Icons.wb_sunny_outlined),
+    _SearchResult('#Oficina', 'Blazers, mocasines y denim', Icons.tag),
+    _SearchResult('#Sostenible', 'Ideas de segunda mano', Icons.eco_outlined),
+  ];
+
+  String _query = '';
+
+  List<_SearchResult> get _filtered {
+    final query = _query.trim().toLowerCase();
+    if (query.isEmpty) return _results;
+    return _results
+        .where((item) => item.title.toLowerCase().contains(query) || item.subtitle.toLowerCase().contains(query))
+        .toList();
+  }
 
   @override
-  void initState() { super.initState(); _filtered = _results; }
-  @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final filtered = _filtered;
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _SheetHandle(),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _ctrl,
-            autofocus: true,
-            style: GoogleFonts.dmSans(fontSize: 14),
-            onChanged: (v) => setState(() =>
-                _filtered = _results.where((r) => r.contains(v.toLowerCase())).toList()),
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.search_rounded, color: AppColors.textHint, size: 20),
-              hintText: 'Buscar usuarios, outfits, estilos...',
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.74),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _SheetHandle(),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              style: GoogleFonts.dmSans(fontSize: 14),
+              onChanged: (value) => setState(() => _query = value),
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.textHint, size: 20),
+                suffixIcon: _query.isEmpty
+                    ? null
+                    : IconButton(
+                        onPressed: () {
+                          _controller.clear();
+                          setState(() => _query = '');
+                        },
+                        icon: const Icon(Icons.close_rounded, size: 18),
+                      ),
+                hintText: 'Buscar usuarios, outfits, estilos...',
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          ..._filtered.map((r) => ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Container(
-              width: 40, height: 40,
-              decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.accentBg),
-              child: Center(child: Text(r[0].toUpperCase(),
-                  style: GoogleFonts.dmSans(
-                      color: AppColors.primary, fontWeight: FontWeight.w800, fontSize: 16))),
+            const SizedBox(height: 12),
+            Expanded(
+              child: filtered.isEmpty
+                  ? Center(
+                      child: Text('Sin resultados', style: GoogleFonts.dmSans(color: AppColors.textHint)),
+                    )
+                  : ListView.separated(
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (_, index) {
+                        final result = filtered[index];
+                        final isFollowing = _following.contains(result.title);
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: CircleAvatar(
+                            backgroundColor: AppColors.accentBg,
+                            child: Icon(result.icon, color: AppColors.primary, size: 19),
+                          ),
+                          title: Text(result.title, style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 14)),
+                          subtitle: Text(result.subtitle, style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint)),
+                          trailing: result.title.startsWith('#')
+                              ? const Icon(Icons.chevron_right_rounded)
+                              : TextButton(
+                                  onPressed: () => setState(() {
+                                    isFollowing ? _following.remove(result.title) : _following.add(result.title);
+                                  }),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: isFollowing ? AppColors.textSec : AppColors.primary,
+                                    backgroundColor: isFollowing ? AppColors.bgPage : AppColors.accentBg,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                  child: Text(isFollowing ? 'Siguiendo' : 'Seguir', style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 12)),
+                                ),
+                          onTap: () {
+                            Navigator.pop(context);
+                            widget.onSelect(result.title);
+                          },
+                        );
+                      },
+                    ),
             ),
-            title: Text(r, style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 14)),
-            subtitle: Text('Diseñadora de moda',
-                style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint)),
-            trailing: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchResult {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+
+  const _SearchResult(this.title, this.subtitle, this.icon);
+}
+
+class _OutfitPreview extends StatelessWidget {
+  final PostModel post;
+
+  const _OutfitPreview({required this.post});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 10, 18, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SheetHandle(),
+            const SizedBox(height: 18),
+            Container(
+              height: 180,
+              width: double.infinity,
               decoration: BoxDecoration(
-                  color: AppColors.accentBg,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.primaryMed.withOpacity(0.4))),
-              child: Text('Seguir',
-                  style: GoogleFonts.dmSans(
-                      color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w700)),
+                borderRadius: BorderRadius.circular(18),
+                gradient: LinearGradient(
+                  colors: [post.placeholderColor, post.placeholderColorEnd],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Center(
+                child: FashionIcon(category: post.fashionCategory, color: Colors.white, size: 82, strokeWidth: 2.4),
+              ),
             ),
-          )),
-          const SizedBox(height: 8),
-        ],
+            const SizedBox(height: 16),
+            Text(post.outfitTitle, style: GoogleFonts.playfairDisplay(fontSize: 24, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            Text(post.description, style: GoogleFonts.dmSans(color: AppColors.textSec, fontSize: 13, height: 1.45)),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              children: post.tags
+                  .map(
+                    (tag) => Chip(
+                      label: Text(tag),
+                      avatar: const Icon(Icons.tag, size: 15, color: AppColors.primary),
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Look anadido a favoritos'))),
+                    icon: const Icon(Icons.favorite_border_rounded, size: 18),
+                    label: const Text('Inspirarme'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                IconButton.outlined(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: 'https://outfy.app/outfit/${post.username}'));
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Outfit copiado')));
+                  },
+                  icon: const Icon(Icons.ios_share_rounded),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
