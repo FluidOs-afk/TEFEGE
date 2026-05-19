@@ -559,7 +559,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         crossAxisCount: 4,
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
-        childAspectRatio: 0.78,
+        childAspectRatio: 0.68,
       ),
       itemCount: _garments.length,
       itemBuilder: (_, i) {

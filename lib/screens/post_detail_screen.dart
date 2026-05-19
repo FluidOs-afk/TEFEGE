@@ -204,7 +204,7 @@ class _PostDetailScreenState extends State<PostDetailScreen>
           ),
 
           // ── Input comentario ─────────────────────────────────────────
-          _buildCommentInput(),
+          SafeArea(top: false, child: _buildCommentInput()),
         ],
       ),
     );
@@ -479,11 +479,7 @@ class _PostDetailScreenState extends State<PostDetailScreen>
   // ── Comment input ──────────────────────────────────────────────────────────
   Widget _buildCommentInput() {
     return Container(
-      padding: EdgeInsets.only(
-          left: 14,
-          right: 14,
-          top: 10,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 12),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
       decoration: const BoxDecoration(
         color: AppColors.bgCard,
         border: Border(top: BorderSide(color: AppColors.border)),
