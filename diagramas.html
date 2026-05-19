@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OUTFY — Diagramas TFG</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --green:      #1B6B44;
+      --green-med:  #3CB87A;
+      --green-light:#6DD4A0;
+      --bg:         #F4F7F5;
+      --card:       #ffffff;
+      --border:     #E2EDE8;
+      --text:       #0D1B12;
+      --text-sec:   #5A7066;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 40px 24px 80px;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    header h1 {
+      font-size: 2.2rem;
+      color: var(--green);
+      letter-spacing: 6px;
+      font-weight: 800;
+    }
+    header p {
+      color: var(--text-sec);
+      margin-top: 6px;
+      font-size: 0.95rem;
+    }
+    .badge {
+      display: inline-block;
+      background: var(--green);
+      color: white;
+      font-size: 0.7rem;
+      padding: 2px 10px;
+      border-radius: 20px;
+      letter-spacing: 1px;
+      margin-top: 8px;
+    }
+
+    .section {
+      max-width: 1100px;
+      margin: 0 auto 60px;
+    }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .section-title h2 {
+      font-size: 1.4rem;
+      color: var(--green);
+      font-weight: 700;
+    }
+    .section-title .num {
+      width: 36px; height: 36px;
+      background: var(--green);
+      color: white;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 1rem;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      padding: 32px;
+      box-shadow: 0 4px 24px rgba(27,107,68,.07);
+      overflow-x: auto;
+    }
+
+    /* ── USE CASE SVG ── */
+    .uc-wrap { width: 100%; overflow-x: auto; }
+    svg.usecase {
+      display: block;
+      margin: 0 auto;
+      max-width: 100%;
+    }
+    .sys-box { fill: #f0faf4; stroke: var(--green); stroke-width: 2; rx: 16; }
+    .actor-head { fill: var(--green); }
+    .actor-body { stroke: var(--green); stroke-width: 2; fill: none; }
+    .uc-ellipse { fill: #e8f5ee; stroke: var(--green); stroke-width: 1.5; }
+    .uc-text { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; fill: #0D1B12; text-anchor: middle; }
+    .uc-line { stroke: var(--green); stroke-width: 1.4; fill: none; }
+    .sys-label { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; font-weight: 700; fill: var(--green); }
+    .actor-label { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; font-weight: 600; fill: var(--green); text-anchor: middle; }
+    .mod-label { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10px; font-weight: 600; fill: var(--text-sec); text-anchor: middle; }
+    .mod-rect { fill: rgba(60,184,122,.08); stroke: var(--green-med); stroke-width: 1; stroke-dasharray: 4 3; }
+
+    /* ── MERMAID THEME ── */
+    .mermaid { min-height: 200px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>OUTFY</h1>
+  <p>Aplicación de moda social — Diagramas de Análisis</p>
+  <span class="badge">TFG · DAM 2025</span>
+</header>
+
+<!-- ════════════════════════════════════════════════
+     1. DIAGRAMA DE FLUJO
+     ════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">
+    <div class="num">1</div>
+    <h2>Diagrama de Flujo</h2>
+  </div>
+  <div class="card">
+    <div class="mermaid">
+flowchart TD
+    START([▶ Inicio App]) --> MAIN
+
+    MAIN(["🏠 Pantalla Principal\n(Bottom Navigation)"])
+
+    MAIN -->|Tab 1| FEED
+    MAIN -->|Tab 2| WARD
+    MAIN -->|Tab 3| AI
+    MAIN -->|Tab 4| FORUM
+    MAIN -->|Tab 5| PROF
+
+    %% ── FEED ──────────────────────────────────────
+    FEED["📰 Feed Social"]
+    FEED --> F1["Ver publicaciones\nde otros usuarios"]
+    F1   --> F2{"¿Acción?"}
+    F2   -->|Like| F3["❤️ Dar / Quitar like"]
+    F2   -->|Comentar| F4["💬 Ver comentarios\n+ Escribir comentario"]
+    F2   -->|Guardar| F5["🔖 Guardar publicación"]
+    F2   -->|Opciones| F6["⋯ Menú: Guardar,\nCompartir, Seguir, Reportar"]
+    FEED --> F7["🔍 Buscar usuarios"]
+    FEED --> F8["🔔 Ver notificaciones"]
+
+    %% ── ARMARIO ────────────────────────────────────
+    WARD["👗 Armario"]
+    WARD --> W1["Ver prendas"]
+    W1   --> W2["Filtrar por categoría,\ncolor o estilo"]
+    WARD --> W3["➕ Añadir prenda\n(foto + datos)"]
+    WARD --> W4["👔 Mis Outfits"]
+    W4   --> W5["Crear outfit\nmanual"]
+    W4   --> W6["Ver outfit IA\nguardado"]
+
+    %% ── IA ─────────────────────────────────────────
+    AI["✨ IA Outfits"]
+    AI   --> AI1["Ver sugerencias\ngeneradas por IA"]
+    AI1  --> AI2{"¿Guardar?"}
+    AI2  -->|Sí| AI3["💾 Outfit guardado\nen Mis Outfits"]
+    AI2  -->|No| AI1
+
+    %% ── FORO ───────────────────────────────────────
+    FORUM["💬 Foro Comunidad"]
+    FORUM --> FO1["Ver categorías"]
+    FO1   --> FO2["Ver hilos\nde la categoría"]
+    FO2   --> FO3["Leer mensajes\nen tiempo real"]
+    FO3   --> FO4["✍️ Escribir mensaje"]
+    FO2   --> FO5["➕ Crear nuevo hilo"]
+
+    %% ── PERFIL ─────────────────────────────────────
+    PROF["👤 Perfil"]
+
+    PROF --> PE["✏️ Editar perfil"]
+    PE   --> PE1["Cambiar nombre\ny ubicación"]
+    PE   --> PE2["Editar biografía"]
+    PE   --> PE3{"¿Username cambiado\nhace menos de 7 días?"}
+    PE3  -->|Sí 🔒| PE4["Campo bloqueado\n(X días restantes)"]
+    PE3  -->|No ✅| PE5["Cambiar\nnombre de usuario"]
+
+    PROF --> PP["📸 Publicaciones"]
+    PP   --> PP1["Grid 3×N\nde publicaciones"]
+    PP1  --> PP2["Tap → Ver detalle\nestilo Instagram"]
+    PP2  --> PP3["❤️ Like / 💬 Comentar\n🔖 Guardar / ➤ Compartir"]
+    PP2  --> PP4["Ver prendas del look\n(Armario etiquetado)"]
+    PP2  --> PP5{"⋯ Opciones"}
+    PP5  -->|Eliminar| PP6["🗑️ Confirmar y eliminar"]
+    PP6  --> PP1
+
+    PROF --> PN["➕ Nueva publicación"]
+    PN   --> PN1{"📷 Añadir foto"}
+    PN1  -->|Galería| PN2["Seleccionar imagen"]
+    PN1  -->|Cámara| PN3["Hacer foto"]
+    PN2  --> PN4["Elegir categoría\ny prendas del armario"]
+    PN3  --> PN4
+    PN4  --> PN5["Añadir título,\ndescripción y etiquetas"]
+    PN5  --> PN6["📤 Publicar"]
+    PN6  --> PP1
+
+    %% ── ESTILOS ─────────────────────────────────────
+    style START  fill:#1B6B44,color:#fff,stroke:none
+    style MAIN   fill:#1B6B44,color:#fff,stroke:none,rx:12
+    style FEED   fill:#E8F5EE,stroke:#1B6B44,color:#0D1B12
+    style WARD   fill:#E8F5EE,stroke:#1B6B44,color:#0D1B12
+    style AI     fill:#E8F5EE,stroke:#1B6B44,color:#0D1B12
+    style FORUM  fill:#E8F5EE,stroke:#1B6B44,color:#0D1B12
+    style PROF   fill:#E8F5EE,stroke:#1B6B44,color:#0D1B12
+    style PE4    fill:#FFE4E4,stroke:#EF5350,color:#B71C1C
+    style PP6    fill:#FFE4E4,stroke:#EF5350,color:#B71C1C
+    style AI3    fill:#E8F5EE,stroke:#3CB87A
+    style PN6    fill:#1B6B44,color:#fff,stroke:none
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     2. DIAGRAMA DE CASOS DE USO
+     ════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">
+    <div class="num">2</div>
+    <h2>Diagrama de Casos de Uso</h2>
+  </div>
+  <div class="card">
+    <div class="uc-wrap">
+      <svg class="usecase" viewBox="0 0 960 860" xmlns="http://www.w3.org/2000/svg">
+
+        <!-- Sistema principal -->
+        <rect x="140" y="30" width="700" height="800" rx="16" class="sys-box"/>
+        <text x="490" y="58" class="sys-label" text-anchor="middle">«Sistema» OUTFY</text>
+
+        <!-- ─── Actor: Usuario ─── -->
+        <!-- cabeza -->
+        <circle cx="60" cy="110" r="16" fill="#1B6B44"/>
+        <!-- cuerpo -->
+        <line x1="60" y1="126" x2="60" y2="168" stroke="#1B6B44" stroke-width="2"/>
+        <!-- brazos -->
+        <line x1="32" y1="145" x2="88" y2="145" stroke="#1B6B44" stroke-width="2"/>
+        <!-- piernas -->
+        <line x1="60" y1="168" x2="38" y2="200" stroke="#1B6B44" stroke-width="2"/>
+        <line x1="60" y1="168" x2="82" y2="200" stroke="#1B6B44" stroke-width="2"/>
+        <text x="60" y="216" class="actor-label">Usuario</text>
+
+        <!-- ─── Actor: Sistema IA ─── -->
+        <circle cx="900" cy="400" r="16" fill="#3CB87A"/>
+        <line x1="900" y1="416" x2="900" y2="458" stroke="#3CB87A" stroke-width="2"/>
+        <line x1="872" y1="435" x2="928" y2="435" stroke="#3CB87A" stroke-width="2"/>
+        <line x1="900" y1="458" x2="878" y2="490" stroke="#3CB87A" stroke-width="2"/>
+        <line x1="900" y1="458" x2="922" y2="490" stroke="#3CB87A" stroke-width="2"/>
+        <text x="900" y="506" class="actor-label">Sistema IA</text>
+
+        <!-- ══════════════ MÓDULO: PERFIL ══════════════ -->
+        <rect x="158" y="68" width="200" height="230" rx="10" class="mod-rect"/>
+        <text x="258" y="86" class="mod-label">👤 PERFIL</text>
+
+        <ellipse cx="258" cy="108" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="258" y="112" class="uc-text">Ver perfil</text>
+
+        <ellipse cx="258" cy="148" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="258" y="152" class="uc-text">Editar bio y ubicación</text>
+
+        <ellipse cx="258" cy="188" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="258" y="192" class="uc-text">Cambiar nombre usuario</text>
+
+        <ellipse cx="258" cy="228" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="258" y="232" class="uc-text">Ver mis publicaciones</text>
+
+        <ellipse cx="258" cy="268" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="258" y="272" class="uc-text">Gestionar perfil</text>
+
+        <!-- ══════════════ MÓDULO: PUBLICACIONES ══════════════ -->
+        <rect x="158" y="315" width="200" height="270" rx="10" class="mod-rect"/>
+        <text x="258" y="333" class="mod-label">📸 PUBLICACIONES</text>
+
+        <ellipse cx="258" cy="355" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="258" y="359" class="uc-text">Crear publicación</text>
+
+        <ellipse cx="258" cy="395" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="258" y="399" class="uc-text">Subir foto galería/cámara</text>
+
+        <ellipse cx="258" cy="435" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="258" y="439" class="uc-text">Etiquetar prendas</text>
+
+        <ellipse cx="258" cy="475" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="258" y="479" class="uc-text">Ver detalle publicación</text>
+
+        <ellipse cx="258" cy="515" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="258" y="519" class="uc-text">Eliminar publicación</text>
+
+        <ellipse cx="258" cy="555" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="258" y="559" class="uc-text">Dar like / comentar</text>
+
+        <!-- ══════════════ MÓDULO: FEED ══════════════ -->
+        <rect x="390" y="68" width="200" height="230" rx="10" class="mod-rect"/>
+        <text x="490" y="86" class="mod-label">📰 FEED SOCIAL</text>
+
+        <ellipse cx="490" cy="108" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="490" y="112" class="uc-text">Ver feed de publicaciones</text>
+
+        <ellipse cx="490" cy="148" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="490" y="152" class="uc-text">Dar like a publicación</text>
+
+        <ellipse cx="490" cy="188" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="490" y="192" class="uc-text">Comentar publicación</text>
+
+        <ellipse cx="490" cy="228" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="490" y="232" class="uc-text">Guardar publicación</text>
+
+        <ellipse cx="490" cy="268" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="490" y="272" class="uc-text">Buscar usuarios</text>
+
+        <!-- ══════════════ MÓDULO: ARMARIO ══════════════ -->
+        <rect x="390" y="315" width="200" height="190" rx="10" class="mod-rect"/>
+        <text x="490" y="333" class="mod-label">👗 ARMARIO</text>
+
+        <ellipse cx="490" cy="355" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="490" y="359" class="uc-text">Añadir prenda</text>
+
+        <ellipse cx="490" cy="395" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="490" y="399" class="uc-text">Ver y filtrar prendas</text>
+
+        <ellipse cx="490" cy="435" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="490" y="439" class="uc-text">Crear outfit manual</text>
+
+        <ellipse cx="490" cy="475" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="490" y="479" class="uc-text">Ver mis outfits</text>
+
+        <!-- ══════════════ MÓDULO: IA ══════════════ -->
+        <rect x="620" y="315" width="200" height="150" rx="10" class="mod-rect"/>
+        <text x="720" y="333" class="mod-label">✨ IA OUTFITS</text>
+
+        <ellipse cx="720" cy="360" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="720" y="364" class="uc-text">Generar outfit con IA</text>
+
+        <ellipse cx="720" cy="400" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="720" y="404" class="uc-text">Ver sugerencias IA</text>
+
+        <ellipse cx="720" cy="440" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="720" y="444" class="uc-text">Guardar outfit IA</text>
+
+        <!-- ══════════════ MÓDULO: FORO ══════════════ -->
+        <rect x="620" y="68" width="200" height="230" rx="10" class="mod-rect"/>
+        <text x="720" y="86" class="mod-label">💬 FORO</text>
+
+        <ellipse cx="720" cy="108" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="720" y="112" class="uc-text">Ver categorías foro</text>
+
+        <ellipse cx="720" cy="148" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="720" y="152" class="uc-text">Ver hilos</text>
+
+        <ellipse cx="720" cy="188" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="720" y="192" class="uc-text">Escribir mensaje</text>
+
+        <ellipse cx="720" cy="228" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="720" y="232" class="uc-text">Crear hilo nuevo</text>
+
+        <ellipse cx="720" cy="268" rx="80" ry="16" class="uc-ellipse"/>
+        <text x="720" y="272" class="uc-text">Ver notificaciones</text>
+
+        <!-- ══════════════ RESTRICCIÓN NEGOCIO ══════════════ -->
+        <rect x="158" y="610" width="200" height="60" rx="10" fill="#fff8e1" stroke="#f9a825" stroke-width="1.5"/>
+        <text x="258" y="634" class="uc-text" font-weight="600" fill="#e65100">«constraint»</text>
+        <text x="258" y="652" class="uc-text" fill="#e65100">Username: 1 cambio / 7 días</text>
+
+        <!-- Línea constraint → Cambiar nombre usuario -->
+        <line x1="258" y1="610" x2="258" y2="204" stroke="#f9a825" stroke-width="1.2" stroke-dasharray="4 3"/>
+
+        <!-- ─── Líneas actor Usuario → casos de uso ─── -->
+        <!-- Perfil -->
+        <line x1="76" y1="120" x2="178" y2="108" class="uc-line"/>
+        <line x1="76" y1="130" x2="178" y2="148" class="uc-line"/>
+        <line x1="76" y1="140" x2="178" y2="188" class="uc-line"/>
+        <line x1="76" y1="150" x2="178" y2="228" class="uc-line"/>
+        <line x1="76" y1="155" x2="178" y2="268" class="uc-line"/>
+        <!-- Publicaciones -->
+        <line x1="76" y1="160" x2="178" y2="355" class="uc-line"/>
+        <line x1="76" y1="165" x2="178" y2="395" class="uc-line"/>
+        <line x1="76" y1="170" x2="178" y2="435" class="uc-line"/>
+        <line x1="76" y1="175" x2="178" y2="475" class="uc-line"/>
+        <line x1="76" y1="180" x2="178" y2="515" class="uc-line"/>
+        <line x1="76" y1="185" x2="178" y2="555" class="uc-line"/>
+        <!-- Feed -->
+        <line x1="76" y1="108" x2="410" y2="108" class="uc-line"/>
+        <line x1="76" y1="113" x2="410" y2="148" class="uc-line"/>
+        <line x1="76" y1="118" x2="410" y2="188" class="uc-line"/>
+        <line x1="76" y1="123" x2="410" y2="228" class="uc-line"/>
+        <line x1="76" y1="128" x2="410" y2="268" class="uc-line"/>
+        <!-- Armario -->
+        <line x1="76" y1="155" x2="410" y2="355" class="uc-line"/>
+        <line x1="76" y1="160" x2="410" y2="395" class="uc-line"/>
+        <line x1="76" y1="165" x2="410" y2="435" class="uc-line"/>
+        <line x1="76" y1="170" x2="410" y2="475" class="uc-line"/>
+        <!-- Foro -->
+        <line x1="76" y1="108" x2="640" y2="108" class="uc-line"/>
+        <line x1="76" y1="113" x2="640" y2="148" class="uc-line"/>
+        <line x1="76" y1="118" x2="640" y2="188" class="uc-line"/>
+        <line x1="76" y1="123" x2="640" y2="228" class="uc-line"/>
+        <line x1="76" y1="128" x2="640" y2="268" class="uc-line"/>
+
+        <!-- ─── Líneas actor Sistema IA ─── -->
+        <line x1="884" y1="380" x2="800" y2="360" class="uc-line" stroke="#3CB87A"/>
+        <line x1="884" y1="400" x2="800" y2="400" class="uc-line" stroke="#3CB87A"/>
+        <line x1="884" y1="420" x2="800" y2="440" class="uc-line" stroke="#3CB87A"/>
+
+        <!-- ══════════════ LEYENDA ══════════════ -->
+        <rect x="158" y="690" width="662" height="126" rx="12" fill="#f9fafb" stroke="#E2EDE8" stroke-width="1"/>
+        <text x="178" y="712" font-family="Segoe UI,Arial" font-size="11" font-weight="700" fill="#1B6B44">LEYENDA</text>
+        <!-- Actor usuario -->
+        <circle cx="198" cy="732" r="7" fill="#1B6B44"/>
+        <text x="212" y="736" font-family="Segoe UI,Arial" font-size="10" fill="#5A7066">Actor principal (Usuario)</text>
+        <!-- Actor sistema -->
+        <circle cx="198" cy="752" r="7" fill="#3CB87A"/>
+        <text x="212" y="756" font-family="Segoe UI,Arial" font-size="10" fill="#5A7066">Actor secundario (Sistema IA)</text>
+        <!-- Caso de uso -->
+        <ellipse cx="198" cy="772" rx="16" ry="8" fill="#E8F5EE" stroke="#1B6B44" stroke-width="1.2"/>
+        <text x="222" y="776" font-family="Segoe UI,Arial" font-size="10" fill="#5A7066">Caso de uso</text>
+        <!-- Módulo -->
+        <rect x="182" y="786" width="32" height="16" rx="4" fill="rgba(60,184,122,.1)" stroke="#3CB87A" stroke-width="1" stroke-dasharray="3 2"/>
+        <text x="222" y="798" font-family="Segoe UI,Arial" font-size="10" fill="#5A7066">Módulo / subsistema</text>
+        <!-- Constraint -->
+        <rect x="410" y="724" width="120" height="28" rx="6" fill="#fff8e1" stroke="#f9a825" stroke-width="1.2"/>
+        <text x="470" y="742" font-family="Segoe UI,Arial" font-size="10" fill="#e65100" text-anchor="middle">«constraint»</text>
+        <text x="540" y="742" font-family="Segoe UI,Arial" font-size="10" fill="#5A7066">Restricción de negocio</text>
+
+      </svg>
+    </div>
+  </div>
+</div>
+
+<footer style="text-align:center; color:var(--text-sec); font-size:0.82rem; margin-top:20px;">
+  OUTFY · TFG DAM 2025 · Generado automáticamente
+</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      primaryColor:       '#E8F5EE',
+      primaryTextColor:   '#0D1B12',
+      primaryBorderColor: '#1B6B44',
+      lineColor:          '#1B6B44',
+      secondaryColor:     '#F4F7F5',
+      tertiaryColor:      '#ffffff',
+      edgeLabelBackground:'#F4F7F5',
+      fontSize:           '13px',
+    },
+    flowchart: { curve: 'basis', padding: 20 }
+  });
+</script>
+</body>
+</html>
