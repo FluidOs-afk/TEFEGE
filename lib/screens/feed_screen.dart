@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../main.dart' show AppColors;
 import '../models/post_model.dart';
@@ -18,6 +20,8 @@ class FeedScreen extends StatefulWidget {
 class _FeedScreenState extends State<FeedScreen> {
   int _activeFilter = 0;
   bool _hasUnreadNotifications = true;
+  final ImagePicker _picker = ImagePicker();
+  final Set<String> _followingUsers = {};
 
   final List<String> _filters = ['Para ti', 'Siguiendo', 'Tendencias', 'Cerca'];
 
@@ -171,7 +175,7 @@ class _FeedScreenState extends State<FeedScreen> {
   List<PostModel> get _visiblePosts {
     switch (_activeFilter) {
       case 1:
-        return _posts.where((post) => post.username != 'andrea.glam').toList();
+        return _posts.where((post) => _followingUsers.contains(post.username)).toList();
       case 2:
         return [..._posts]..sort((a, b) => b.likes.compareTo(a.likes));
       case 3:
@@ -298,6 +302,8 @@ class _FeedScreenState extends State<FeedScreen> {
                   return _PostCard(
                     key: ValueKey(post.username),
                     post: post,
+                    isFollowing: _followingUsers.contains(post.username),
+                    onFollowChanged: () => _toggleFollow(post.username),
                     onLike: () => setState(() {
                       final current = _posts[realIndex];
                       _posts[realIndex] = current.copyWith(
@@ -394,32 +400,18 @@ class _FeedScreenState extends State<FeedScreen> {
                         title: 'Camara',
                         onTap: () {
                           Navigator.pop(context);
-                          _toast('Camara lista para una futura integracion');
+                          _pickStoryImage(ImageSource.camera);
                         },
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: _QuickActionTile(
-                        icon: Icons.checkroom_outlined,
-                        title: 'Outfit',
+                        icon: Icons.photo_library_outlined,
+                        title: 'Galeria',
                         onTap: () {
                           Navigator.pop(context);
-                          setState(() {
-                            _stories.insert(
-                              0,
-                              _Story(
-                                label: 'tu.look',
-                                color: AppColors.primary,
-                                initial: 'T',
-                                hasNew: true,
-                                title: 'Nuevo outfit',
-                                detail: 'Historia creada durante esta sesion.',
-                                category: FashionCategory.tops,
-                              ),
-                            );
-                          });
-                          _toast('Historia creada');
+                          _pickStoryImage(ImageSource.gallery);
                         },
                       ),
                     ),
@@ -431,6 +423,37 @@ class _FeedScreenState extends State<FeedScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _pickStoryImage(ImageSource source) async {
+    final image = await _picker.pickImage(source: source, imageQuality: 86, maxWidth: 1400);
+    if (image == null || !mounted) return;
+
+    final bytes = await image.readAsBytes();
+    if (!mounted) return;
+
+    setState(() {
+      _stories.insert(
+        0,
+        _Story(
+          label: 'tu.look',
+          color: AppColors.primary,
+          initial: 'T',
+          hasNew: true,
+          title: source == ImageSource.camera ? 'Foto nueva' : 'Desde galeria',
+          detail: 'Historia creada durante esta sesion.',
+          category: FashionCategory.tops,
+          imageBytes: bytes,
+        ),
+      );
+    });
+    _toast('Historia creada');
+  }
+
+  void _toggleFollow(String username) {
+    setState(() {
+      _followingUsers.contains(username) ? _followingUsers.remove(username) : _followingUsers.add(username);
+    });
   }
 
   void _showNotifications(BuildContext context) {
@@ -521,6 +544,7 @@ class _Story {
   final String title;
   final String detail;
   final FashionCategory category;
+  final Uint8List? imageBytes;
 
   const _Story({
     required this.label,
@@ -530,6 +554,7 @@ class _Story {
     required this.title,
     required this.detail,
     required this.category,
+    this.imageBytes,
   });
 
   _Story copyWith({bool? hasNew}) => _Story(
@@ -540,6 +565,7 @@ class _Story {
         title: title,
         detail: detail,
         category: category,
+        imageBytes: imageBytes,
       );
 }
 
@@ -794,7 +820,7 @@ class _StoryPage extends StatelessWidget {
             ),
             const Spacer(),
             Center(
-              child: Container(
+              child: story.imageBytes == null ? Container(
                 width: 210,
                 height: 210,
                 decoration: BoxDecoration(
@@ -809,6 +835,14 @@ class _StoryPage extends StatelessWidget {
                     size: 112,
                     strokeWidth: 2.5,
                   ),
+                ),
+              ) : ClipRRect(
+                borderRadius: BorderRadius.circular(22),
+                child: Image.memory(
+                  story.imageBytes!,
+                  width: double.infinity,
+                  height: MediaQuery.of(context).size.height * 0.52,
+                  fit: BoxFit.cover,
                 ),
               ),
             ),
@@ -947,6 +981,8 @@ class _FeedStatusBar extends StatelessWidget {
 
 class _PostCard extends StatefulWidget {
   final PostModel post;
+  final bool isFollowing;
+  final VoidCallback onFollowChanged;
   final VoidCallback onLike;
   final VoidCallback onComment;
   final VoidCallback onOpenOutfit;
@@ -954,6 +990,8 @@ class _PostCard extends StatefulWidget {
   const _PostCard({
     super.key,
     required this.post,
+    required this.isFollowing,
+    required this.onFollowChanged,
     required this.onLike,
     required this.onComment,
     required this.onOpenOutfit,
@@ -965,7 +1003,6 @@ class _PostCard extends StatefulWidget {
 
 class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixin {
   bool _saved = false;
-  bool _following = false;
   late final AnimationController _heartController;
   late final Animation<double> _heartScale;
 
@@ -1046,15 +1083,16 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
                   ),
                 ),
                 TextButton(
-                  onPressed: () => setState(() => _following = !_following),
+                  onPressed: widget.onFollowChanged,
                   style: TextButton.styleFrom(
                     minimumSize: const Size(78, 34),
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    foregroundColor: _following ? AppColors.textSec : AppColors.primary,
-                    backgroundColor: _following ? AppColors.bgPage : AppColors.accentBg,
+                    foregroundColor: widget.isFollowing ? AppColors.textSec : AppColors.primary,
+                    backgroundColor: widget.isFollowing ? AppColors.bgPage : AppColors.accentBg,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: Text(_following ? 'Siguiendo' : 'Seguir', style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 12)),
+                  child: Text(widget.isFollowing ? 'Siguiendo' : 'Seguir',
+                      style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 12)),
                 ),
                 IconButton(
                   tooltip: 'Mas opciones',
@@ -1276,12 +1314,12 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
                 },
               ),
               _OptionTile(
-                icon: _following ? Icons.person_remove_outlined : Icons.person_add_outlined,
-                title: _following ? 'Dejar de seguir a @${widget.post.username}' : 'Seguir a @${widget.post.username}',
+                icon: widget.isFollowing ? Icons.person_remove_outlined : Icons.person_add_outlined,
+                title: widget.isFollowing ? 'Dejar de seguir a @${widget.post.username}' : 'Seguir a @${widget.post.username}',
                 onTap: () {
-                  setState(() => _following = !_following);
+                  widget.onFollowChanged();
                   Navigator.pop(context);
-                  _toast(context, _following ? 'Ahora sigues a @${widget.post.username}' : 'Ya no sigues a @${widget.post.username}');
+                  _toast(context, widget.isFollowing ? 'Ya no sigues a @${widget.post.username}' : 'Ahora sigues a @${widget.post.username}');
                 },
               ),
               _OptionTile(

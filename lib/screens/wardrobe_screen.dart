@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import '../main.dart' show AppColors;
 import '../widgets/fashion_icon.dart';
 
@@ -15,6 +18,7 @@ class _WardrobeScreenState extends State<WardrobeScreen>
   int _selectedCatIndex = 0;
   String _selectedColor = 'Todos';
   String _selectedStyle = 'Todos';
+  final ImagePicker _picker = ImagePicker();
 
   final List<_Cat> _cats = [
     _Cat('Todo', Icons.apps_rounded),
@@ -109,7 +113,7 @@ class _WardrobeScreenState extends State<WardrobeScreen>
         children: [_buildGarments(), _buildOutfits()],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddModal(context),
+        onPressed: () => _showAddModal2(context),
         icon: const Icon(Icons.add_a_photo_outlined),
         label: Text('Añadir',
             style: GoogleFonts.dmSans(fontWeight: FontWeight.w600)),
@@ -193,7 +197,7 @@ class _WardrobeScreenState extends State<WardrobeScreen>
         // Grid
         Expanded(
           child: _filtered.isEmpty
-              ? _EmptyWardrobe(onAdd: () => _showAddModal(context))
+              ? _EmptyWardrobe(onAdd: () => _showAddModal2(context))
               : GridView.builder(
                   padding: const EdgeInsets.all(12),
                   gridDelegate:
@@ -262,6 +266,143 @@ class _WardrobeScreenState extends State<WardrobeScreen>
   }
 
   // ─── Sheets ───────────────────────────────────────────────────────────────────
+  void _showAddModal2(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _Sheet(
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            left: 20,
+            right: 20,
+            top: 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _SheetHandle(),
+              const SizedBox(height: 16),
+              Text('Anadir prenda',
+                  style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 16),
+              Row(children: [
+                Expanded(
+                  child: _AddOption(
+                    icon: Icons.camera_alt_outlined,
+                    label: 'Hacer foto',
+                    sub: 'Analizar prenda',
+                    color: AppColors.primary,
+                    onTap: () {
+                      Navigator.pop(context);
+                      _pickGarmentImage(ImageSource.camera);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _AddOption(
+                    icon: Icons.qr_code_scanner_rounded,
+                    label: 'Escanear QR',
+                    sub: 'Importar tienda',
+                    color: const Color(0xFF7B2FBE),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _scanQrCode();
+                    },
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 10),
+              _AddOption(
+                icon: Icons.photo_library_outlined,
+                label: 'Subir de galeria',
+                sub: 'Importar foto de una prenda',
+                color: const Color(0xFF2F80ED),
+                wide: true,
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickGarmentImage(ImageSource.gallery);
+                },
+              ),
+              const SizedBox(height: 10),
+              _AddOption(
+                icon: Icons.store_outlined,
+                label: 'Buscar en tiendas',
+                sub: 'Zara, H&M, Mango, Nike y mas',
+                color: const Color(0xFF0097A7),
+                wide: true,
+                onTap: () {
+                  Navigator.pop(context);
+                  _showStoreSearch(context);
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickGarmentImage(ImageSource source) async {
+    final image = await _picker.pickImage(source: source, imageQuality: 86, maxWidth: 1400);
+    if (image == null || !mounted) return;
+
+    final bytes = await image.readAsBytes();
+    if (!mounted) return;
+
+    setState(() {
+      _garments.insert(
+        0,
+        _Garment(
+          name: source == ImageSource.camera ? 'Prenda fotografiada' : 'Prenda de galeria',
+          brand: 'Mi armario',
+          color: 'Blanco',
+          style: 'Casual',
+          bg: const Color(0xFFE8F5EE),
+          cat: 'Tops',
+          fav: false,
+          imageBytes: bytes,
+        ),
+      );
+      _selectedCatIndex = 0;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Prenda anadida al armario')),
+    );
+  }
+
+  Future<void> _scanQrCode() async {
+    final image = await _picker.pickImage(source: ImageSource.camera, imageQuality: 70, maxWidth: 900);
+    if (image == null || !mounted) return;
+
+    final bytes = await image.readAsBytes();
+    if (!mounted) return;
+
+    setState(() {
+      _garments.insert(
+        0,
+        _Garment(
+          name: 'Prenda importada QR',
+          brand: 'Tienda escaneada',
+          color: 'Negro',
+          style: 'Casual',
+          bg: const Color(0xFFF3E5F5),
+          cat: 'Accesorios',
+          fav: false,
+          imageBytes: bytes,
+        ),
+      );
+      _selectedCatIndex = 0;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Codigo QR escaneado y prenda importada')),
+    );
+  }
+
   void _showGarmentDetail(BuildContext context, _Garment g) {
     showModalBottomSheet(
       context: context,
@@ -325,6 +466,13 @@ class _WardrobeScreenState extends State<WardrobeScreen>
                                   size: 44,
                                   strokeWidth: 2.2),
                             ),
+                            if (g.imageBytes != null)
+                              Positioned.fill(
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Image.memory(g.imageBytes!, fit: BoxFit.cover),
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -622,6 +770,7 @@ class _Garment {
   final String name, brand, color, style, cat;
   final Color bg;
   final bool fav;
+  final Uint8List? imageBytes;
   const _Garment(
       {required this.name,
       required this.brand,
@@ -629,7 +778,8 @@ class _Garment {
       required this.style,
       required this.bg,
       required this.cat,
-      required this.fav});
+      required this.fav,
+      this.imageBytes});
   _Garment toggleFav() => _Garment(
       name: name,
       brand: brand,
@@ -637,7 +787,8 @@ class _Garment {
       style: style,
       bg: bg,
       cat: cat,
-      fav: !fav);
+      fav: !fav,
+      imageBytes: imageBytes);
 }
 
 class _Outfit {
@@ -765,6 +916,14 @@ class _GarmentCard extends StatelessWidget {
                       strokeWidth: 2.2,
                     ),
                   ),
+                  if (garment.imageBytes != null)
+                    Positioned.fill(
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(18)),
+                        child: Image.memory(garment.imageBytes!, fit: BoxFit.cover),
+                      ),
+                    ),
                 ]),
               ),
               Positioned(
