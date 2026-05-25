@@ -969,7 +969,7 @@ class _FeedStatusBar extends StatelessWidget {
               children: [
                 const Icon(Icons.tune_rounded, color: AppColors.primary, size: 15),
                 const SizedBox(width: 5),
-                Text('Curado', style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w700)),
+                Text('Filtros', style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w700)),
               ],
             ),
           ),

@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../main.dart' show AppColors;
+import '../providers/auth_provider.dart';
 import '../services/profile_service.dart';
 import '../services/settings_service.dart';
 import 'edit_profile_screen.dart';
+import 'legal_screen.dart';
+import 'login_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -63,7 +67,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 style: GoogleFonts.dmSans(color: AppColors.textSec)),
           ),
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              await context.read<AuthProvider>().logout();
+              if (!mounted) return;
+              Navigator.of(context).pushAndRemoveUntil(
+                PageRouteBuilder(
+                  pageBuilder: (_, _, _) => const LoginScreen(),
+                  transitionsBuilder: (_, anim, _, child) =>
+                      FadeTransition(opacity: anim, child: child),
+                  transitionDuration: const Duration(milliseconds: 400),
+                ),
+                (_) => false,
+              );
+            },
             child: Text('Cerrar sesión',
                 style: GoogleFonts.dmSans(
                     color: Colors.red, fontWeight: FontWeight.w700)),
@@ -183,14 +200,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
               icon: Icons.description_outlined,
               iconColor: AppColors.textSec,
               title: 'Términos de uso',
-              onTap: () {},
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const LegalScreen(
+                    title: 'Términos de uso',
+                    assetPath: 'assets/docs/terminos-de-uso.md',
+                  ),
+                ),
+              ),
             ),
             _divider(),
             _navTile(
               icon: Icons.privacy_tip_outlined,
               iconColor: AppColors.textSec,
               title: 'Política de privacidad',
-              onTap: () {},
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const LegalScreen(
+                    title: 'Política de privacidad',
+                    assetPath: 'assets/docs/politica-de-privacidad.md',
+                  ),
+                ),
+              ),
             ),
           ]),
           const SizedBox(height: 32),

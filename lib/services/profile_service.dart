@@ -7,6 +7,7 @@ class UserProfile {
   final String displayName;
   final String bio;
   final String location;
+  final String? profileImagePath;
   final DateTime? lastUsernameChange;
 
   const UserProfile({
@@ -14,6 +15,7 @@ class UserProfile {
     required this.displayName,
     required this.bio,
     required this.location,
+    this.profileImagePath,
     this.lastUsernameChange,
   });
 
@@ -43,6 +45,7 @@ class UserProfile {
     String? displayName,
     String? bio,
     String? location,
+    String? profileImagePath,
     DateTime? lastUsernameChange,
     bool clearLastUsernameChange = false,
   }) {
@@ -51,6 +54,7 @@ class UserProfile {
       displayName: displayName ?? this.displayName,
       bio: bio ?? this.bio,
       location: location ?? this.location,
+      profileImagePath: profileImagePath ?? this.profileImagePath,
       lastUsernameChange: clearLastUsernameChange
           ? null
           : (lastUsernameChange ?? this.lastUsernameChange),
@@ -62,6 +66,7 @@ class UserProfile {
         'displayName': displayName,
         'bio': bio,
         'location': location,
+        'profileImagePath': profileImagePath,
         'lastUsernameChange': lastUsernameChange?.millisecondsSinceEpoch,
       };
 
@@ -70,6 +75,7 @@ class UserProfile {
         displayName: json['displayName'] as String? ?? 'Usuario',
         bio: json['bio'] as String? ?? '',
         location: json['location'] as String? ?? '',
+        profileImagePath: json['profileImagePath'] as String?,
         lastUsernameChange: json['lastUsernameChange'] != null
             ? DateTime.fromMillisecondsSinceEpoch(
                 json['lastUsernameChange'] as int)
