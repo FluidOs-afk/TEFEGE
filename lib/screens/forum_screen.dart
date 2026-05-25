@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../main.dart' show AppColors;
+import '../services/profile_service.dart';
+import '../services/users_service.dart';
+import 'profile_screen.dart';
 
 const _currentUser = 'Tu';
 
@@ -207,6 +210,34 @@ class _ForumScreenState extends State<ForumScreen>
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
+  void _openProfileForName(String name) {
+    if (name == _currentUser) {
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const ProfileScreen()));
+      return;
+    }
+
+    final aliases = {
+      'lucia.v': 'lucia.vintage',
+      'sofia.s': 'sofia.styles',
+      'marta.f': 'marta.fashion',
+      'andrea.g': 'andrea.glam',
+    };
+    final username = aliases[name] ?? name;
+    final user = UsersService.instance.getUserByUsername(username);
+    if (user == null || user.userId == ProfileService.instance.profile.userId) {
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const ProfileScreen()));
+      return;
+    }
+
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => ProfileScreen(userId: user.userId)));
+  }
+
   Future<void> _openComposer({_ForumCat? cat, _Thread? editing}) async {
     final result = await showModalBottomSheet<_Thread>(
       context: context,
@@ -232,6 +263,7 @@ class _ForumScreenState extends State<ForumScreen>
           onSave: () => _toggleSaved(thread),
           onLock: () => _toggleLocked(thread),
           onSolve: () => _toggleSolved(thread),
+          onAuthorTap: _openProfileForName,
         ),
       ),
     );
@@ -317,6 +349,7 @@ class _ForumScreenState extends State<ForumScreen>
                         threads: _threadsForCat(cat),
                         onOpen: _openThread,
                         onNew: () => _openComposer(cat: cat),
+                        onAuthorTap: _openProfileForName,
                       ),
                     ),
                   ),
@@ -325,11 +358,13 @@ class _ForumScreenState extends State<ForumScreen>
                   threads: _visibleThreads,
                   emptyText: 'No hay hilos con esa busqueda',
                   onTap: _openThread,
+                  onAuthorTap: _openProfileForName,
                 ),
                 _ThreadList(
                   threads: _myThreads,
                   emptyText: 'Todavia no has publicado ningun hilo',
                   onTap: _openThread,
+                  onAuthorTap: _openProfileForName,
                 ),
               ],
             ),
@@ -575,11 +610,13 @@ class _ThreadList extends StatelessWidget {
   final List<_Thread> threads;
   final String emptyText;
   final ValueChanged<_Thread> onTap;
+  final ValueChanged<String> onAuthorTap;
 
   const _ThreadList({
     required this.threads,
     required this.emptyText,
     required this.onTap,
+    required this.onAuthorTap,
   });
 
   @override
@@ -590,7 +627,11 @@ class _ThreadList extends StatelessWidget {
     return ListView.builder(
       padding: const EdgeInsets.all(14),
       itemCount: threads.length,
-      itemBuilder: (_, i) => _ThreadCard(thread: threads[i], onTap: onTap),
+      itemBuilder: (_, i) => _ThreadCard(
+        thread: threads[i],
+        onTap: onTap,
+        onAuthorTap: onAuthorTap,
+      ),
     );
   }
 }
@@ -598,8 +639,13 @@ class _ThreadList extends StatelessWidget {
 class _ThreadCard extends StatelessWidget {
   final _Thread thread;
   final ValueChanged<_Thread> onTap;
+  final ValueChanged<String> onAuthorTap;
 
-  const _ThreadCard({required this.thread, required this.onTap});
+  const _ThreadCard({
+    required this.thread,
+    required this.onTap,
+    required this.onAuthorTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -677,13 +723,20 @@ class _ThreadCard extends StatelessWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              _Avatar(name: thread.author, radius: 10),
+              GestureDetector(
+                onTap: () => onAuthorTap(thread.author),
+                child: _Avatar(name: thread.author, radius: 10),
+              ),
               const SizedBox(width: 6),
-              Text(
-                thread.author,
-                style: GoogleFonts.dmSans(
-                  fontSize: 11,
-                  color: AppColors.textSec,
+              GestureDetector(
+                onTap: () => onAuthorTap(thread.author),
+                child: Text(
+                  thread.author,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 11,
+                    color: AppColors.textSec,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               if (thread.isMine) ...[
@@ -717,12 +770,14 @@ class _CategoryScreen extends StatelessWidget {
   final List<_Thread> threads;
   final ValueChanged<_Thread> onOpen;
   final VoidCallback onNew;
+  final ValueChanged<String> onAuthorTap;
 
   const _CategoryScreen({
     required this.cat,
     required this.threads,
     required this.onOpen,
     required this.onNew,
+    required this.onAuthorTap,
   });
 
   @override
@@ -743,6 +798,7 @@ class _CategoryScreen extends StatelessWidget {
         threads: threads,
         emptyText: 'Aun no hay hilos en esta categoria',
         onTap: onOpen,
+        onAuthorTap: onAuthorTap,
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: onNew,
@@ -761,6 +817,7 @@ class _ThreadScreen extends StatefulWidget {
   final VoidCallback onSave;
   final VoidCallback onLock;
   final VoidCallback onSolve;
+  final ValueChanged<String> onAuthorTap;
 
   const _ThreadScreen({
     required this.thread,
@@ -770,6 +827,7 @@ class _ThreadScreen extends StatefulWidget {
     required this.onSave,
     required this.onLock,
     required this.onSolve,
+    required this.onAuthorTap,
   });
 
   @override
@@ -1058,7 +1116,10 @@ class _ThreadScreenState extends State<_ThreadScreen> {
               controller: _scrollCtrl,
               padding: const EdgeInsets.all(14),
               children: [
-                _ThreadHeader(thread: widget.thread),
+                _ThreadHeader(
+                  thread: widget.thread,
+                  onAuthorTap: widget.onAuthorTap,
+                ),
                 const SizedBox(height: 12),
                 if (replies.isEmpty)
                   const _EmptyForumState(
@@ -1070,6 +1131,7 @@ class _ThreadScreenState extends State<_ThreadScreen> {
                       reply: reply,
                       onLike: () => _toggleLike(reply),
                       onActions: () => _showReplyActions(reply),
+                      onAuthorTap: widget.onAuthorTap,
                     ),
                   ),
               ],
@@ -1088,8 +1150,12 @@ class _ThreadScreenState extends State<_ThreadScreen> {
 
 class _ThreadHeader extends StatelessWidget {
   final _Thread thread;
+  final ValueChanged<String> onAuthorTap;
 
-  const _ThreadHeader({required this.thread});
+  const _ThreadHeader({
+    required this.thread,
+    required this.onAuthorTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1165,14 +1231,20 @@ class _ThreadHeader extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              _Avatar(name: thread.author, radius: 13),
+              GestureDetector(
+                onTap: () => onAuthorTap(thread.author),
+                child: _Avatar(name: thread.author, radius: 13),
+              ),
               const SizedBox(width: 8),
-              Text(
-                thread.author,
-                style: GoogleFonts.dmSans(
-                  fontSize: 12,
-                  color: AppColors.textSec,
-                  fontWeight: FontWeight.w700,
+              GestureDetector(
+                onTap: () => onAuthorTap(thread.author),
+                child: Text(
+                  thread.author,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 12,
+                    color: AppColors.textSec,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               const Spacer(),
@@ -1194,11 +1266,13 @@ class _ReplyBubble extends StatelessWidget {
   final _Reply reply;
   final VoidCallback onLike;
   final VoidCallback onActions;
+  final ValueChanged<String> onAuthorTap;
 
   const _ReplyBubble({
     required this.reply,
     required this.onLike,
     required this.onActions,
+    required this.onAuthorTap,
   });
 
   @override
@@ -1209,15 +1283,21 @@ class _ReplyBubble extends StatelessWidget {
         children: [
           Row(
             children: [
-              _Avatar(name: reply.user, radius: 13),
+              GestureDetector(
+                onTap: () => onAuthorTap(reply.user),
+                child: _Avatar(name: reply.user, radius: 13),
+              ),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(
-                  reply.user,
-                  style: GoogleFonts.dmSans(
-                    fontSize: 12,
-                    color: AppColors.textSec,
-                    fontWeight: FontWeight.w700,
+                child: GestureDetector(
+                  onTap: () => onAuthorTap(reply.user),
+                  child: Text(
+                    reply.user,
+                    style: GoogleFonts.dmSans(
+                      fontSize: 12,
+                      color: AppColors.textSec,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ),

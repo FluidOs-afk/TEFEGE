@@ -3,18 +3,26 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class UserProfile {
+  final String userId;
   final String username;
   final String displayName;
   final String bio;
   final String location;
   final DateTime? lastUsernameChange;
+  final int followersCount;
+  final int followingCount;
+  final List<String> followedBy;
 
   const UserProfile({
+    required this.userId,
     required this.username,
     required this.displayName,
     required this.bio,
     required this.location,
     this.lastUsernameChange,
+    this.followersCount = 0,
+    this.followingCount = 0,
+    this.followedBy = const [],
   });
 
   String get initials {
@@ -39,14 +47,19 @@ class UserProfile {
   }
 
   UserProfile copyWith({
+    String? userId,
     String? username,
     String? displayName,
     String? bio,
     String? location,
     DateTime? lastUsernameChange,
     bool clearLastUsernameChange = false,
+    int? followersCount,
+    int? followingCount,
+    List<String>? followedBy,
   }) {
     return UserProfile(
+      userId: userId ?? this.userId,
       username: username ?? this.username,
       displayName: displayName ?? this.displayName,
       bio: bio ?? this.bio,
@@ -54,33 +67,46 @@ class UserProfile {
       lastUsernameChange: clearLastUsernameChange
           ? null
           : (lastUsernameChange ?? this.lastUsernameChange),
+      followersCount: followersCount ?? this.followersCount,
+      followingCount: followingCount ?? this.followingCount,
+      followedBy: followedBy ?? this.followedBy,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'username': username,
-        'displayName': displayName,
-        'bio': bio,
-        'location': location,
-        'lastUsernameChange': lastUsernameChange?.millisecondsSinceEpoch,
-      };
+    'userId': userId,
+    'username': username,
+    'displayName': displayName,
+    'bio': bio,
+    'location': location,
+    'lastUsernameChange': lastUsernameChange?.millisecondsSinceEpoch,
+    'followersCount': followersCount,
+    'followingCount': followingCount,
+    'followedBy': followedBy,
+  };
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
-        username: json['username'] as String? ?? 'usuario',
-        displayName: json['displayName'] as String? ?? 'Usuario',
-        bio: json['bio'] as String? ?? '',
-        location: json['location'] as String? ?? '',
-        lastUsernameChange: json['lastUsernameChange'] != null
-            ? DateTime.fromMillisecondsSinceEpoch(
-                json['lastUsernameChange'] as int)
-            : null,
-      );
+    userId: json['userId'] as String? ?? '',
+    username: json['username'] as String? ?? 'usuario',
+    displayName: json['displayName'] as String? ?? 'Usuario',
+    bio: json['bio'] as String? ?? '',
+    location: json['location'] as String? ?? '',
+    lastUsernameChange: json['lastUsernameChange'] != null
+        ? DateTime.fromMillisecondsSinceEpoch(json['lastUsernameChange'] as int)
+        : null,
+    followersCount: json['followersCount'] as int? ?? 0,
+    followingCount: json['followingCount'] as int? ?? 0,
+    followedBy: List<String>.from(json['followedBy'] as List? ?? []),
+  );
 
   static const defaultProfile = UserProfile(
+    userId: 'u_sergio',
     username: 'sergio.outfy',
     displayName: 'Sergio Ruiz',
     bio: 'Apasionado de la moda\nArmario curado con amor\nMadrid · DAM 2025',
     location: 'Madrid, España',
+    followersCount: 1250,
+    followingCount: 342,
   );
 }
 
@@ -98,8 +124,9 @@ class ProfileService extends ChangeNotifier {
     final raw = prefs.getString(_prefKey);
     if (raw != null) {
       try {
-        _profile =
-            UserProfile.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+        _profile = UserProfile.fromJson(
+          jsonDecode(raw) as Map<String, dynamic>,
+        );
       } catch (_) {
         _profile = UserProfile.defaultProfile;
       }

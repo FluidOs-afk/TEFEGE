@@ -8,7 +8,10 @@ import 'package:image_picker/image_picker.dart';
 
 import '../main.dart' show AppColors;
 import '../models/post_model.dart';
+import '../services/profile_service.dart';
 import '../widgets/fashion_icon.dart';
+import 'profile_screen.dart';
+import 'user_search_screen.dart';
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
@@ -27,6 +30,7 @@ class _FeedScreenState extends State<FeedScreen> {
 
   final List<PostModel> _posts = [
     const PostModel(
+      userId: 'u_sofia',
       username: 'sofia.styles',
       avatar: 'S',
       avatarColor: Color(0xFF3CB87A),
@@ -43,6 +47,7 @@ class _FeedScreenState extends State<FeedScreen> {
       isLiked: true,
     ),
     const PostModel(
+      userId: 'u_marta',
       username: 'marta.fashion',
       avatar: 'M',
       avatarColor: Color(0xFF8E44AD),
@@ -59,6 +64,7 @@ class _FeedScreenState extends State<FeedScreen> {
       isLiked: false,
     ),
     const PostModel(
+      userId: 'u_lucia',
       username: 'lucia.vintage',
       avatar: 'L',
       avatarColor: Color(0xFF9A6B4F),
@@ -75,6 +81,7 @@ class _FeedScreenState extends State<FeedScreen> {
       isLiked: false,
     ),
     const PostModel(
+      userId: 'u_andrea',
       username: 'andrea.glam',
       avatar: 'A',
       avatarColor: Color(0xFF455A64),
@@ -94,6 +101,7 @@ class _FeedScreenState extends State<FeedScreen> {
 
   final List<_Story> _stories = [
     _Story(
+      userId: 'u_sofia',
       label: 'sofia.s',
       color: const Color(0xFF1B6B44),
       initial: 'S',
@@ -103,6 +111,7 @@ class _FeedScreenState extends State<FeedScreen> {
       category: FashionCategory.tops,
     ),
     _Story(
+      userId: 'u_marta',
       label: 'marta.f',
       color: const Color(0xFF8E44AD),
       initial: 'M',
@@ -112,6 +121,7 @@ class _FeedScreenState extends State<FeedScreen> {
       category: FashionCategory.pants,
     ),
     _Story(
+      userId: 'u_lucia',
       label: 'lucia.v',
       color: const Color(0xFF9A6B4F),
       initial: 'L',
@@ -121,6 +131,7 @@ class _FeedScreenState extends State<FeedScreen> {
       category: FashionCategory.coat,
     ),
     _Story(
+      userId: 'u_andrea',
       label: 'andrea.g',
       color: const Color(0xFF455A64),
       initial: 'A',
@@ -130,6 +141,7 @@ class _FeedScreenState extends State<FeedScreen> {
       category: FashionCategory.dress,
     ),
     _Story(
+      userId: 'u_carmen',
       label: 'carmen.b',
       color: const Color(0xFF00838F),
       initial: 'C',
@@ -139,6 +151,7 @@ class _FeedScreenState extends State<FeedScreen> {
       category: FashionCategory.accessory,
     ),
     _Story(
+      userId: 'u_paula',
       label: 'paula.m',
       color: const Color(0xFF2E7D32),
       initial: 'P',
@@ -151,35 +164,83 @@ class _FeedScreenState extends State<FeedScreen> {
 
   final Map<String, List<Map<String, String>>> _commentsByPost = {
     'sofia.styles': [
-      {'user': 'carmen.b', 'text': 'Esta combinacion es perfecta. Donde es el blazer?', 'time': '5 min'},
-      {'user': 'ana.trends', 'text': 'Me tienes obsesionada con este look', 'time': '12 min'},
-      {'user': 'paula.style', 'text': 'Inspiracion total para manana', 'time': '23 min'},
-      {'user': 'sara.moda', 'text': 'Los colores tierra son mi nueva obsesion', 'time': '1 h'},
+      {
+        'user': 'carmen.b',
+        'text': 'Esta combinacion es perfecta. Donde es el blazer?',
+        'time': '5 min',
+      },
+      {
+        'user': 'ana.trends',
+        'text': 'Me tienes obsesionada con este look',
+        'time': '12 min',
+      },
+      {
+        'user': 'paula.style',
+        'text': 'Inspiracion total para manana',
+        'time': '23 min',
+      },
+      {
+        'user': 'sara.moda',
+        'text': 'Los colores tierra son mi nueva obsesion',
+        'time': '1 h',
+      },
     ],
     'marta.fashion': [
-      {'user': 'sofia.styles', 'text': 'El lavanda con coral queda increible.', 'time': '8 min'},
-      {'user': 'nerea.fit', 'text': 'Necesito esas zapatillas.', 'time': '19 min'},
-      {'user': 'laura.mod', 'text': 'Muy primaveral y nada obvio.', 'time': '1 h'},
+      {
+        'user': 'sofia.styles',
+        'text': 'El lavanda con coral queda increible.',
+        'time': '8 min',
+      },
+      {
+        'user': 'nerea.fit',
+        'text': 'Necesito esas zapatillas.',
+        'time': '19 min',
+      },
+      {
+        'user': 'laura.mod',
+        'text': 'Muy primaveral y nada obvio.',
+        'time': '1 h',
+      },
     ],
     'lucia.vintage': [
-      {'user': 'marta.fashion', 'text': 'Ese abrigo parece de boutique.', 'time': '14 min'},
+      {
+        'user': 'marta.fashion',
+        'text': 'Ese abrigo parece de boutique.',
+        'time': '14 min',
+      },
       {'user': 'carmen.b', 'text': 'Malasana nunca falla.', 'time': '36 min'},
-      {'user': 'alba.slow', 'text': 'Mas looks sostenibles asi, por favor.', 'time': '2 h'},
+      {
+        'user': 'alba.slow',
+        'text': 'Mas looks sostenibles asi, por favor.',
+        'time': '2 h',
+      },
     ],
     'andrea.glam': [
-      {'user': 'paula.style', 'text': 'Elegante sin pasarse. Perfecto.', 'time': '20 min'},
-      {'user': 'sofia.styles', 'text': 'El bolso pequeno lo cambia todo.', 'time': '1 h'},
+      {
+        'user': 'paula.style',
+        'text': 'Elegante sin pasarse. Perfecto.',
+        'time': '20 min',
+      },
+      {
+        'user': 'sofia.styles',
+        'text': 'El bolso pequeno lo cambia todo.',
+        'time': '1 h',
+      },
     ],
   };
 
   List<PostModel> get _visiblePosts {
     switch (_activeFilter) {
       case 1:
-        return _posts.where((post) => _followingUsers.contains(post.username)).toList();
+        return _posts
+            .where((post) => _followingUsers.contains(post.username))
+            .toList();
       case 2:
         return [..._posts]..sort((a, b) => b.likes.compareTo(a.likes));
       case 3:
-        return _posts.where((post) => post.tags.any((tag) => tag != 'Summer')).toList();
+        return _posts
+            .where((post) => post.tags.any((tag) => tag != 'Summer'))
+            .toList();
       default:
         return _posts;
     }
@@ -234,7 +295,11 @@ class _FeedScreenState extends State<FeedScreen> {
                   icon: Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      const Icon(Icons.notifications_outlined, color: AppColors.textPrimary, size: 22),
+                      const Icon(
+                        Icons.notifications_outlined,
+                        color: AppColors.textPrimary,
+                        size: 22,
+                      ),
                       if (_hasUnreadNotifications)
                         Positioned(
                           right: 1,
@@ -254,7 +319,11 @@ class _FeedScreenState extends State<FeedScreen> {
                 IconButton(
                   tooltip: 'Buscar',
                   onPressed: () => _showSearch(context),
-                  icon: const Icon(Icons.search_rounded, color: AppColors.textPrimary, size: 22),
+                  icon: const Icon(
+                    Icons.search_rounded,
+                    color: AppColors.textPrimary,
+                    size: 22,
+                  ),
                 ),
                 const SizedBox(width: 4),
               ],
@@ -277,7 +346,9 @@ class _FeedScreenState extends State<FeedScreen> {
                 ),
               ),
             ),
-            const SliverToBoxAdapter(child: Divider(height: 1, color: AppColors.border)),
+            const SliverToBoxAdapter(
+              child: Divider(height: 1, color: AppColors.border),
+            ),
             SliverPersistentHeader(
               pinned: true,
               delegate: _FilterDelegate(
@@ -289,34 +360,36 @@ class _FeedScreenState extends State<FeedScreen> {
             SliverToBoxAdapter(
               child: _FeedStatusBar(
                 title: _filters[_activeFilter],
-                subtitle: '${posts.length} looks seleccionados para inspirarte hoy',
+                subtitle:
+                    '${posts.length} looks seleccionados para inspirarte hoy',
               ),
             ),
             SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (_, index) {
-                  if (index == posts.length) return const SizedBox(height: 20);
-                  final post = posts[index];
-                  final realIndex = _posts.indexWhere((item) => item.username == post.username);
+              delegate: SliverChildBuilderDelegate((_, index) {
+                if (index == posts.length) return const SizedBox(height: 20);
+                final post = posts[index];
+                final realIndex = _posts.indexWhere(
+                  (item) => item.username == post.username,
+                );
 
-                  return _PostCard(
-                    key: ValueKey(post.username),
-                    post: post,
-                    isFollowing: _followingUsers.contains(post.username),
-                    onFollowChanged: () => _toggleFollow(post.username),
-                    onLike: () => setState(() {
-                      final current = _posts[realIndex];
-                      _posts[realIndex] = current.copyWith(
-                        isLiked: !current.isLiked,
-                        likes: current.isLiked ? current.likes - 1 : current.likes + 1,
-                      );
-                    }),
-                    onComment: () => _showComments(context, post),
-                    onOpenOutfit: () => _showOutfitPreview(context, post),
-                  );
-                },
-                childCount: posts.length + 1,
-              ),
+                return _PostCard(
+                  key: ValueKey(post.username),
+                  post: post,
+                  isFollowing: _followingUsers.contains(post.username),
+                  onFollowChanged: () => _toggleFollow(post.username),
+                  onLike: () => setState(() {
+                    final current = _posts[realIndex];
+                    _posts[realIndex] = current.copyWith(
+                      isLiked: !current.isLiked,
+                      likes: current.isLiked
+                          ? current.likes - 1
+                          : current.likes + 1,
+                    );
+                  }),
+                  onComment: () => _showComments(context, post),
+                  onOpenOutfit: () => _showOutfitPreview(context, post),
+                );
+              }, childCount: posts.length + 1),
             ),
           ],
         ),
@@ -345,13 +418,15 @@ class _FeedScreenState extends State<FeedScreen> {
           PageRouteBuilder<void>(
             opaque: false,
             barrierColor: Colors.black,
-            pageBuilder: (_, __, ___) => _StoryViewer(
+            pageBuilder: (_, _, _) => _StoryViewer(
               stories: _stories,
               initialIndex: index,
               onViewed: (viewedIndex) {
                 if (!mounted) return;
                 setState(() {
-                  _stories[viewedIndex] = _stories[viewedIndex].copyWith(hasNew: false);
+                  _stories[viewedIndex] = _stories[viewedIndex].copyWith(
+                    hasNew: false,
+                  );
                 });
               },
             ),
@@ -360,7 +435,9 @@ class _FeedScreenState extends State<FeedScreen> {
       },
       child: _StoryBubble(
         initial: story.initial,
-        label: story.label.length > 8 ? '${story.label.substring(0, 7)}...' : story.label,
+        label: story.label.length > 8
+            ? '${story.label.substring(0, 7)}...'
+            : story.label,
         color: story.color,
         hasNew: story.hasNew,
         isMe: false,
@@ -384,12 +461,18 @@ class _FeedScreenState extends State<FeedScreen> {
                 const SizedBox(height: 18),
                 Text(
                   'Crear historia',
-                  style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w800),
+                  style: GoogleFonts.dmSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Elige un formato rapido para mostrar tu outfit. Es una maqueta funcional en memoria.',
-                  style: GoogleFonts.dmSans(color: AppColors.textSec, fontSize: 13),
+                  style: GoogleFonts.dmSans(
+                    color: AppColors.textSec,
+                    fontSize: 13,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -426,7 +509,11 @@ class _FeedScreenState extends State<FeedScreen> {
   }
 
   Future<void> _pickStoryImage(ImageSource source) async {
-    final image = await _picker.pickImage(source: source, imageQuality: 86, maxWidth: 1400);
+    final image = await _picker.pickImage(
+      source: source,
+      imageQuality: 86,
+      maxWidth: 1400,
+    );
     if (image == null || !mounted) return;
 
     final bytes = await image.readAsBytes();
@@ -436,6 +523,7 @@ class _FeedScreenState extends State<FeedScreen> {
       _stories.insert(
         0,
         _Story(
+          userId: ProfileService.instance.profile.userId,
           label: 'tu.look',
           color: AppColors.primary,
           initial: 'T',
@@ -452,7 +540,9 @@ class _FeedScreenState extends State<FeedScreen> {
 
   void _toggleFollow(String username) {
     setState(() {
-      _followingUsers.contains(username) ? _followingUsers.remove(username) : _followingUsers.add(username);
+      _followingUsers.contains(username)
+          ? _followingUsers.remove(username)
+          : _followingUsers.add(username);
     });
   }
 
@@ -467,24 +557,17 @@ class _FeedScreenState extends State<FeedScreen> {
           minChildSize: 0.35,
           maxChildSize: 0.88,
           expand: false,
-          builder: (_, controller) => _NotificationsSheet(controller: controller),
+          builder: (_, controller) =>
+              _NotificationsSheet(controller: controller),
         ),
       ),
     );
   }
 
   void _showSearch(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _BottomSheet(
-        child: Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-          child: _SearchSheet(onSelect: (value) => _toast('Abriendo $value')),
-        ),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const UserSearchScreen()));
   }
 
   void _showComments(BuildContext context, PostModel post) {
@@ -531,12 +614,18 @@ class _FeedScreenState extends State<FeedScreen> {
 
   void _toast(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message, style: GoogleFonts.dmSans(fontWeight: FontWeight.w600))),
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.dmSans(fontWeight: FontWeight.w600),
+        ),
+      ),
     );
   }
 }
 
 class _Story {
+  final String userId;
   final String label;
   final String initial;
   final Color color;
@@ -547,6 +636,7 @@ class _Story {
   final Uint8List? imageBytes;
 
   const _Story({
+    required this.userId,
     required this.label,
     required this.color,
     required this.initial,
@@ -558,15 +648,16 @@ class _Story {
   });
 
   _Story copyWith({bool? hasNew}) => _Story(
-        label: label,
-        color: color,
-        initial: initial,
-        hasNew: hasNew ?? this.hasNew,
-        title: title,
-        detail: detail,
-        category: category,
-        imageBytes: imageBytes,
-      );
+    userId: userId,
+    label: label,
+    color: color,
+    initial: initial,
+    hasNew: hasNew ?? this.hasNew,
+    title: title,
+    detail: detail,
+    category: category,
+    imageBytes: imageBytes,
+  );
 }
 
 class _StoryBubble extends StatelessWidget {
@@ -608,12 +699,22 @@ class _StoryBubble extends StatelessWidget {
             ),
             padding: const EdgeInsets.all(2.5),
             child: Container(
-              decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.bgCard),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.bgCard,
+              ),
               padding: const EdgeInsets.all(2),
               child: isMe
                   ? Container(
-                      decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.accentBg),
-                      child: const Icon(Icons.add_rounded, color: AppColors.primary, size: 26),
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.accentBg,
+                      ),
+                      child: const Icon(
+                        Icons.add_rounded,
+                        color: AppColors.primary,
+                        size: 26,
+                      ),
                     )
                   : CircleAvatar(
                       backgroundColor: color,
@@ -699,7 +800,10 @@ class _StoryViewerState extends State<_StoryViewer> {
       Navigator.pop(context);
       return;
     }
-    _controller.nextPage(duration: const Duration(milliseconds: 240), curve: Curves.easeOut);
+    _controller.nextPage(
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOut,
+    );
   }
 
   void _previous() {
@@ -707,7 +811,23 @@ class _StoryViewerState extends State<_StoryViewer> {
       _startTimer();
       return;
     }
-    _controller.previousPage(duration: const Duration(milliseconds: 240), curve: Curves.easeOut);
+    _controller.previousPage(
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOut,
+    );
+  }
+
+  Future<void> _openProfile(_Story story) async {
+    _timer?.cancel();
+    final currentUserId = ProfileService.instance.profile.userId;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => story.userId == currentUserId
+            ? const ProfileScreen()
+            : ProfileScreen(userId: story.userId),
+      ),
+    );
+    if (mounted) _startTimer();
   }
 
   @override
@@ -725,7 +845,10 @@ class _StoryViewerState extends State<_StoryViewer> {
                 widget.onViewed(value);
                 _startTimer();
               },
-              itemBuilder: (_, index) => _StoryPage(story: widget.stories[index]),
+              itemBuilder: (_, index) => _StoryPage(
+                story: widget.stories[index],
+                onProfileTap: _openProfile,
+              ),
             ),
             Positioned(
               top: 10,
@@ -733,7 +856,9 @@ class _StoryViewerState extends State<_StoryViewer> {
               right: 10,
               child: Row(
                 children: List.generate(widget.stories.length, (index) {
-                  final value = index < _index ? 1.0 : (index == _index ? _progress : 0.0);
+                  final value = index < _index
+                      ? 1.0
+                      : (index == _index ? _progress : 0.0);
                   return Expanded(
                     child: Container(
                       height: 3,
@@ -758,11 +883,21 @@ class _StoryViewerState extends State<_StoryViewer> {
               ),
             ),
             Positioned.fill(
-              top: 48,
+              top: 112,
               child: Row(
                 children: [
-                  Expanded(child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: _previous)),
-                  Expanded(child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: _next)),
+                  Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _previous,
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _next,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -783,8 +918,9 @@ class _StoryViewerState extends State<_StoryViewer> {
 
 class _StoryPage extends StatelessWidget {
   final _Story story;
+  final ValueChanged<_Story> onProfileTap;
 
-  const _StoryPage({required this.story});
+  const _StoryPage({required this.story, required this.onProfileTap});
 
   @override
   Widget build(BuildContext context) {
@@ -801,50 +937,66 @@ class _StoryPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Colors.white.withOpacity(0.18),
-                  child: Text(
-                    story.initial,
-                    style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => onProfileTap(story),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: Colors.white.withOpacity(0.18),
+                    child: Text(
+                      story.initial,
+                      style: GoogleFonts.dmSans(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  story.label,
-                  style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14),
-                ),
-              ],
+                  const SizedBox(width: 10),
+                  Text(
+                    story.label,
+                    style: GoogleFonts.dmSans(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
             ),
             const Spacer(),
             Center(
-              child: story.imageBytes == null ? Container(
-                width: 210,
-                height: 210,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withOpacity(0.25)),
-                ),
-                child: Center(
-                  child: FashionIcon(
-                    category: story.category,
-                    color: Colors.white,
-                    size: 112,
-                    strokeWidth: 2.5,
-                  ),
-                ),
-              ) : ClipRRect(
-                borderRadius: BorderRadius.circular(22),
-                child: Image.memory(
-                  story.imageBytes!,
-                  width: double.infinity,
-                  height: MediaQuery.of(context).size.height * 0.52,
-                  fit: BoxFit.cover,
-                ),
-              ),
+              child: story.imageBytes == null
+                  ? Container(
+                      width: 210,
+                      height: 210,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.12),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.25),
+                        ),
+                      ),
+                      child: Center(
+                        child: FashionIcon(
+                          category: story.category,
+                          color: Colors.white,
+                          size: 112,
+                          strokeWidth: 2.5,
+                        ),
+                      ),
+                    )
+                  : ClipRRect(
+                      borderRadius: BorderRadius.circular(22),
+                      child: Image.memory(
+                        story.imageBytes!,
+                        width: double.infinity,
+                        height: MediaQuery.of(context).size.height * 0.52,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
             ),
             const Spacer(),
             Text(
@@ -859,7 +1011,11 @@ class _StoryPage extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               story.detail,
-              style: GoogleFonts.dmSans(color: Colors.white.withOpacity(0.86), fontSize: 15, height: 1.35),
+              style: GoogleFonts.dmSans(
+                color: Colors.white.withOpacity(0.86),
+                fontSize: 15,
+                height: 1.35,
+              ),
             ),
             const SizedBox(height: 20),
             _PillButton(
@@ -890,7 +1046,11 @@ class _FilterDelegate extends SliverPersistentHeaderDelegate {
   });
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
     return Container(
       color: AppColors.bgCard,
       height: 54,
@@ -909,7 +1069,9 @@ class _FilterDelegate extends SliverPersistentHeaderDelegate {
               decoration: BoxDecoration(
                 color: isActive ? AppColors.primary : AppColors.bgPage,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: isActive ? AppColors.primary : AppColors.border),
+                border: Border.all(
+                  color: isActive ? AppColors.primary : AppColors.border,
+                ),
               ),
               child: Text(
                 filters[index],
@@ -933,7 +1095,8 @@ class _FilterDelegate extends SliverPersistentHeaderDelegate {
   double get minExtent => 54;
 
   @override
-  bool shouldRebuild(_FilterDelegate oldDelegate) => oldDelegate.activeFilter != activeFilter;
+  bool shouldRebuild(_FilterDelegate oldDelegate) =>
+      oldDelegate.activeFilter != activeFilter;
 }
 
 class _FeedStatusBar extends StatelessWidget {
@@ -953,8 +1116,20 @@ class _FeedStatusBar extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w800)),
-                Text(subtitle, style: GoogleFonts.dmSans(fontSize: 12, color: AppColors.textSec)),
+                Text(
+                  title,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 12,
+                    color: AppColors.textSec,
+                  ),
+                ),
               ],
             ),
           ),
@@ -967,9 +1142,19 @@ class _FeedStatusBar extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(Icons.tune_rounded, color: AppColors.primary, size: 15),
+                const Icon(
+                  Icons.tune_rounded,
+                  color: AppColors.primary,
+                  size: 15,
+                ),
                 const SizedBox(width: 5),
-                Text('Curado', style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w700)),
+                Text(
+                  'Curado',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1001,7 +1186,8 @@ class _PostCard extends StatefulWidget {
   State<_PostCard> createState() => _PostCardState();
 }
 
-class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixin {
+class _PostCardState extends State<_PostCard>
+    with SingleTickerProviderStateMixin {
   bool _saved = false;
   late final AnimationController _heartController;
   late final Animation<double> _heartScale;
@@ -1009,10 +1195,14 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
   @override
   void initState() {
     super.initState();
-    _heartController = AnimationController(vsync: this, duration: const Duration(milliseconds: 360));
-    _heartScale = Tween<double>(begin: 0.7, end: 1.45)
-        .chain(CurveTween(curve: Curves.easeOutBack))
-        .animate(_heartController);
+    _heartController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 360),
+    );
+    _heartScale = Tween<double>(
+      begin: 0.7,
+      end: 1.45,
+    ).chain(CurveTween(curve: Curves.easeOutBack)).animate(_heartController);
   }
 
   @override
@@ -1029,7 +1219,8 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
 
   String _fmt(int value) {
     if (value >= 1000000) return '${(value / 1000000).toStringAsFixed(1)}M';
-    if (value >= 1000) return '${(value / 1000).toStringAsFixed(value % 1000 >= 100 ? 1 : 0)}K';
+    if (value >= 1000)
+      return '${(value / 1000).toStringAsFixed(value % 1000 >= 100 ? 1 : 0)}K';
     return value.toString();
   }
 
@@ -1045,41 +1236,66 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
             padding: const EdgeInsets.fromLTRB(14, 12, 8, 10),
             child: Row(
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [AppColors.primary, AppColors.primaryLight],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                GestureDetector(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ProfileScreen(userId: widget.post.userId),
                     ),
                   ),
-                  padding: const EdgeInsets.all(2),
-                  child: CircleAvatar(
-                    backgroundColor: widget.post.avatarColor,
-                    child: Text(
-                      widget.post.avatar,
-                      style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [AppColors.primary, AppColors.primaryLight],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    padding: const EdgeInsets.all(2),
+                    child: CircleAvatar(
+                      backgroundColor: widget.post.avatarColor,
+                      child: Text(
+                        widget.post.avatar,
+                        style: GoogleFonts.dmSans(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                        ),
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.post.username,
-                        style: GoogleFonts.dmSans(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14,
-                          color: AppColors.textPrimary,
-                        ),
+                  child: GestureDetector(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            ProfileScreen(userId: widget.post.userId),
                       ),
-                      Text(widget.post.timeAgo, style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint)),
-                    ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.post.username,
+                          style: GoogleFonts.dmSans(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          widget.post.timeAgo,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 11,
+                            color: AppColors.textHint,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 TextButton(
@@ -1087,17 +1303,32 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
                   style: TextButton.styleFrom(
                     minimumSize: const Size(78, 34),
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    foregroundColor: widget.isFollowing ? AppColors.textSec : AppColors.primary,
-                    backgroundColor: widget.isFollowing ? AppColors.bgPage : AppColors.accentBg,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    foregroundColor: widget.isFollowing
+                        ? AppColors.textSec
+                        : AppColors.primary,
+                    backgroundColor: widget.isFollowing
+                        ? AppColors.bgPage
+                        : AppColors.accentBg,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
-                  child: Text(widget.isFollowing ? 'Siguiendo' : 'Seguir',
-                      style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 12)),
+                  child: Text(
+                    widget.isFollowing ? 'Siguiendo' : 'Seguir',
+                    style: GoogleFonts.dmSans(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                    ),
+                  ),
                 ),
                 IconButton(
                   tooltip: 'Mas opciones',
                   onPressed: () => _showOptions(context),
-                  icon: const Icon(Icons.more_horiz, color: AppColors.textHint, size: 20),
+                  icon: const Icon(
+                    Icons.more_horiz,
+                    color: AppColors.textHint,
+                    size: 20,
+                  ),
                 ),
               ],
             ),
@@ -1114,7 +1345,10 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
                   DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [widget.post.placeholderColor, widget.post.placeholderColorEnd],
+                        colors: [
+                          widget.post.placeholderColor,
+                          widget.post.placeholderColorEnd,
+                        ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -1137,7 +1371,9 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.14),
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white.withOpacity(0.28)),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.28),
+                        ),
                       ),
                       child: Center(
                         child: FashionIcon(
@@ -1157,7 +1393,10 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
                       padding: const EdgeInsets.fromLTRB(16, 72, 16, 14),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Colors.transparent, Colors.black.withOpacity(0.68)],
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withOpacity(0.68),
+                          ],
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                         ),
@@ -1174,7 +1413,10 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
                               ),
                             ),
                           ),
-                          _MiniOverlayButton(label: 'Ver outfit', onTap: widget.onOpenOutfit),
+                          _MiniOverlayButton(
+                            label: 'Ver outfit',
+                            onTap: widget.onOpenOutfit,
+                          ),
                         ],
                       ),
                     ),
@@ -1182,15 +1424,18 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
                   Center(
                     child: AnimatedBuilder(
                       animation: _heartController,
-                      builder: (_, __) {
-                        if (_heartController.value == 0 || _heartController.value == 1) {
+                      builder: (_, _) {
+                        if (_heartController.value == 0 ||
+                            _heartController.value == 1) {
                           return const SizedBox.shrink();
                         }
                         return Transform.scale(
                           scale: _heartScale.value,
                           child: Icon(
                             Icons.favorite_rounded,
-                            color: Colors.white.withOpacity(1 - _heartController.value),
+                            color: Colors.white.withOpacity(
+                              1 - _heartController.value,
+                            ),
                             size: 88,
                           ),
                         );
@@ -1206,19 +1451,36 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
             child: Row(
               children: [
                 _ActionBtn(
-                  icon: widget.post.isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                  color: widget.post.isLiked ? const Color(0xFFE74C3C) : AppColors.textPrimary,
+                  icon: widget.post.isLiked
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  color: widget.post.isLiked
+                      ? const Color(0xFFE74C3C)
+                      : AppColors.textPrimary,
                   onTap: _handleLike,
                 ),
-                _ActionBtn(icon: Icons.chat_bubble_outline_rounded, color: AppColors.textPrimary, onTap: widget.onComment),
-                _ActionBtn(icon: Icons.near_me_outlined, color: AppColors.textPrimary, onTap: () => _sharePost(context)),
+                _ActionBtn(
+                  icon: Icons.chat_bubble_outline_rounded,
+                  color: AppColors.textPrimary,
+                  onTap: widget.onComment,
+                ),
+                _ActionBtn(
+                  icon: Icons.near_me_outlined,
+                  color: AppColors.textPrimary,
+                  onTap: () => _sharePost(context),
+                ),
                 const Spacer(),
                 _ActionBtn(
-                  icon: _saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                  icon: _saved
+                      ? Icons.bookmark_rounded
+                      : Icons.bookmark_border_rounded,
                   color: _saved ? AppColors.primary : AppColors.textPrimary,
                   onTap: () {
                     setState(() => _saved = !_saved);
-                    _toast(context, _saved ? 'Publicacion guardada' : 'Guardado eliminado');
+                    _toast(
+                      context,
+                      _saved ? 'Publicacion guardada' : 'Guardado eliminado',
+                    );
                   },
                 ),
               ],
@@ -1231,7 +1493,11 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
               children: [
                 Text(
                   '${_fmt(widget.post.likes)} me gusta',
-                  style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.textPrimary),
+                  style: GoogleFonts.dmSans(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 RichText(
@@ -1239,11 +1505,19 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
                     children: [
                       TextSpan(
                         text: '${widget.post.username}  ',
-                        style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.textPrimary),
+                        style: GoogleFonts.dmSans(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                       TextSpan(
                         text: widget.post.description,
-                        style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.textSec, height: 1.45),
+                        style: GoogleFonts.dmSans(
+                          fontSize: 13,
+                          color: AppColors.textSec,
+                          height: 1.45,
+                        ),
                       ),
                     ],
                   ),
@@ -1273,7 +1547,11 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
                   onTap: widget.onComment,
                   child: Text(
                     'Ver los ${_fmt(widget.post.comments)} comentarios',
-                    style: GoogleFonts.dmSans(fontSize: 12, color: AppColors.textHint, fontWeight: FontWeight.w600),
+                    style: GoogleFonts.dmSans(
+                      fontSize: 12,
+                      color: AppColors.textHint,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
@@ -1297,12 +1575,17 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
               _SheetHandle(),
               const SizedBox(height: 8),
               _OptionTile(
-                icon: _saved ? Icons.bookmark_remove_outlined : Icons.bookmark_add_outlined,
+                icon: _saved
+                    ? Icons.bookmark_remove_outlined
+                    : Icons.bookmark_add_outlined,
                 title: _saved ? 'Quitar guardado' : 'Guardar publicacion',
                 onTap: () {
                   setState(() => _saved = !_saved);
                   Navigator.pop(context);
-                  _toast(context, _saved ? 'Publicacion guardada' : 'Guardado eliminado');
+                  _toast(
+                    context,
+                    _saved ? 'Publicacion guardada' : 'Guardado eliminado',
+                  );
                 },
               ),
               _OptionTile(
@@ -1314,12 +1597,21 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
                 },
               ),
               _OptionTile(
-                icon: widget.isFollowing ? Icons.person_remove_outlined : Icons.person_add_outlined,
-                title: widget.isFollowing ? 'Dejar de seguir a @${widget.post.username}' : 'Seguir a @${widget.post.username}',
+                icon: widget.isFollowing
+                    ? Icons.person_remove_outlined
+                    : Icons.person_add_outlined,
+                title: widget.isFollowing
+                    ? 'Dejar de seguir a @${widget.post.username}'
+                    : 'Seguir a @${widget.post.username}',
                 onTap: () {
                   widget.onFollowChanged();
                   Navigator.pop(context);
-                  _toast(context, widget.isFollowing ? 'Ya no sigues a @${widget.post.username}' : 'Ahora sigues a @${widget.post.username}');
+                  _toast(
+                    context,
+                    widget.isFollowing
+                        ? 'Ya no sigues a @${widget.post.username}'
+                        : 'Ahora sigues a @${widget.post.username}',
+                  );
                 },
               ),
               _OptionTile(
@@ -1340,13 +1632,20 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
   }
 
   void _sharePost(BuildContext context) {
-    Clipboard.setData(ClipboardData(text: 'https://outfy.app/post/${widget.post.username}'));
+    Clipboard.setData(
+      ClipboardData(text: 'https://outfy.app/post/${widget.post.username}'),
+    );
     _toast(context, 'Enlace copiado al portapapeles');
   }
 
   void _toast(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message, style: GoogleFonts.dmSans(fontWeight: FontWeight.w600))),
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.dmSans(fontWeight: FontWeight.w600),
+        ),
+      ),
     );
   }
 }
@@ -1356,7 +1655,11 @@ class _ActionBtn extends StatelessWidget {
   final Color color;
   final VoidCallback onTap;
 
-  const _ActionBtn({required this.icon, required this.color, required this.onTap});
+  const _ActionBtn({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1388,7 +1691,11 @@ class _MiniOverlayButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
           child: Text(
             label,
-            style: GoogleFonts.dmSans(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800),
+            style: GoogleFonts.dmSans(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ),
       ),
@@ -1421,7 +1728,10 @@ class _SheetHandle extends StatelessWidget {
       child: Container(
         width: 40,
         height: 4,
-        decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
+        decoration: BoxDecoration(
+          color: AppColors.border,
+          borderRadius: BorderRadius.circular(2),
+        ),
       ),
     );
   }
@@ -1432,7 +1742,11 @@ class _QuickActionTile extends StatelessWidget {
   final String title;
   final VoidCallback onTap;
 
-  const _QuickActionTile({required this.icon, required this.title, required this.onTap});
+  const _QuickActionTile({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1448,7 +1762,13 @@ class _QuickActionTile extends StatelessWidget {
             children: [
               Icon(icon, color: AppColors.primary, size: 24),
               const SizedBox(height: 8),
-              Text(title, style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 13)),
+              Text(
+                title,
+                style: GoogleFonts.dmSans(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                ),
+              ),
             ],
           ),
         ),
@@ -1525,7 +1845,13 @@ class _PillButton extends StatelessWidget {
             children: [
               Icon(icon, color: foreground, size: 18),
               const SizedBox(width: 8),
-              Text(label, style: GoogleFonts.dmSans(color: foreground, fontWeight: FontWeight.w800)),
+              Text(
+                label,
+                style: GoogleFonts.dmSans(
+                  color: foreground,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ],
           ),
         ),
@@ -1572,11 +1898,19 @@ class _CommentsSheetState extends State<_CommentsSheet> {
               const SizedBox(height: 12),
               Text(
                 'Comentarios',
-                style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                style: GoogleFonts.dmSans(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
               ),
               Text(
                 '@${widget.username}',
-                style: GoogleFonts.dmSans(fontSize: 12, color: AppColors.textHint, fontWeight: FontWeight.w600),
+                style: GoogleFonts.dmSans(
+                  fontSize: 12,
+                  color: AppColors.textHint,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -1587,11 +1921,17 @@ class _CommentsSheetState extends State<_CommentsSheet> {
             controller: widget.scrollController,
             padding: const EdgeInsets.all(16),
             itemCount: widget.comments.length,
-            itemBuilder: (_, index) => _CommentRow(comment: widget.comments[index]),
+            itemBuilder: (_, index) =>
+                _CommentRow(comment: widget.comments[index]),
           ),
         ),
         Container(
-          padding: EdgeInsets.only(left: 14, right: 14, top: 10, bottom: MediaQuery.of(context).viewInsets.bottom + 14),
+          padding: EdgeInsets.only(
+            left: 14,
+            right: 14,
+            top: 10,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 14,
+          ),
           decoration: const BoxDecoration(
             color: AppColors.bgCard,
             border: Border(top: BorderSide(color: AppColors.border)),
@@ -1622,13 +1962,21 @@ class _CommentsSheetState extends State<_CommentsSheet> {
                   final text = _controller.text.trim();
                   if (text.isEmpty) return;
                   setState(() {
-                    widget.comments.insert(0, {'user': 'tu', 'text': text, 'time': 'Ahora'});
+                    widget.comments.insert(0, {
+                      'user': 'tu',
+                      'text': text,
+                      'time': 'Ahora',
+                    });
                     _controller.clear();
                   });
                   widget.onChanged();
                 },
                 style: IconButton.styleFrom(backgroundColor: AppColors.primary),
-                icon: const Icon(Icons.send_rounded, color: Colors.white, size: 17),
+                icon: const Icon(
+                  Icons.send_rounded,
+                  color: Colors.white,
+                  size: 17,
+                ),
               ),
             ],
           ),
@@ -1655,7 +2003,11 @@ class _CommentRow extends StatelessWidget {
             backgroundColor: AppColors.accentBg,
             child: Text(
               comment['user']![0].toUpperCase(),
-              style: GoogleFonts.dmSans(color: AppColors.primary, fontWeight: FontWeight.w800, fontSize: 13),
+              style: GoogleFonts.dmSans(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w800,
+                fontSize: 13,
+              ),
             ),
           ),
           const SizedBox(width: 10),
@@ -1668,17 +2020,31 @@ class _CommentRow extends StatelessWidget {
                     children: [
                       TextSpan(
                         text: '${comment['user']}  ',
-                        style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.textPrimary),
+                        style: GoogleFonts.dmSans(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                       TextSpan(
                         text: comment['text'],
-                        style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.textSec, height: 1.4),
+                        style: GoogleFonts.dmSans(
+                          fontSize: 13,
+                          color: AppColors.textSec,
+                          height: 1.4,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(comment['time']!, style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint)),
+                Text(
+                  comment['time']!,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 11,
+                    color: AppColors.textHint,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1699,11 +2065,41 @@ class _NotificationsSheet extends StatefulWidget {
 
 class _NotificationsSheetState extends State<_NotificationsSheet> {
   late final List<_NotificationItem> _items = [
-    _NotificationItem('sofia.styles', 'le dio like a tu outfit', '2 min', Icons.favorite_rounded, AppColors.primaryMed),
-    _NotificationItem('marta.fashion', 'comento tu publicacion', '15 min', Icons.chat_bubble_rounded, const Color(0xFF8E44AD)),
-    _NotificationItem('lucia.vintage', 'empezo a seguirte', '1 h', Icons.person_add_rounded, const Color(0xFF00838F)),
-    _NotificationItem('andrea.glam', 'guardo tu publicacion', '2 h', Icons.bookmark_rounded, const Color(0xFFFF9800)),
-    _NotificationItem('carmen.b', 'te menciono en un comentario', '3 h', Icons.alternate_email, const Color(0xFF2E7D32)),
+    _NotificationItem(
+      'sofia.styles',
+      'le dio like a tu outfit',
+      '2 min',
+      Icons.favorite_rounded,
+      AppColors.primaryMed,
+    ),
+    _NotificationItem(
+      'marta.fashion',
+      'comento tu publicacion',
+      '15 min',
+      Icons.chat_bubble_rounded,
+      const Color(0xFF8E44AD),
+    ),
+    _NotificationItem(
+      'lucia.vintage',
+      'empezo a seguirte',
+      '1 h',
+      Icons.person_add_rounded,
+      const Color(0xFF00838F),
+    ),
+    _NotificationItem(
+      'andrea.glam',
+      'guardo tu publicacion',
+      '2 h',
+      Icons.bookmark_rounded,
+      const Color(0xFFFF9800),
+    ),
+    _NotificationItem(
+      'carmen.b',
+      'te menciono en un comentario',
+      '3 h',
+      Icons.alternate_email,
+      const Color(0xFF2E7D32),
+    ),
   ];
 
   @override
@@ -1721,12 +2117,19 @@ class _NotificationsSheetState extends State<_NotificationsSheet> {
                   Expanded(
                     child: Text(
                       'Notificaciones',
-                      style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                      style: GoogleFonts.dmSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ),
                   TextButton(
                     onPressed: () => setState(() => _items.clear()),
-                    child: Text('Limpiar', style: GoogleFonts.dmSans(fontWeight: FontWeight.w800)),
+                    child: Text(
+                      'Limpiar',
+                      style: GoogleFonts.dmSans(fontWeight: FontWeight.w800),
+                    ),
                   ),
                 ],
               ),
@@ -1739,7 +2142,10 @@ class _NotificationsSheetState extends State<_NotificationsSheet> {
               ? Center(
                   child: Text(
                     'Todo al dia',
-                    style: GoogleFonts.dmSans(color: AppColors.textHint, fontWeight: FontWeight.w700),
+                    style: GoogleFonts.dmSans(
+                      color: AppColors.textHint,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 )
               : ListView.builder(
@@ -1754,15 +2160,25 @@ class _NotificationsSheetState extends State<_NotificationsSheet> {
                         color: const Color(0xFFD64545),
                         alignment: Alignment.centerRight,
                         padding: const EdgeInsets.only(right: 20),
-                        child: const Icon(Icons.delete_outline, color: Colors.white),
+                        child: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.white,
+                        ),
                       ),
-                      onDismissed: (_) => setState(() => _items.removeAt(index)),
+                      onDismissed: (_) =>
+                          setState(() => _items.removeAt(index)),
                       child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
                         leading: Container(
                           width: 42,
                           height: 42,
-                          decoration: BoxDecoration(color: item.color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                          decoration: BoxDecoration(
+                            color: item.color.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           child: Icon(item.icon, color: item.color, size: 20),
                         ),
                         title: RichText(
@@ -1770,17 +2186,34 @@ class _NotificationsSheetState extends State<_NotificationsSheet> {
                             children: [
                               TextSpan(
                                 text: '${item.user}  ',
-                                style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, color: AppColors.textPrimary, fontSize: 13),
+                                style: GoogleFonts.dmSans(
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textPrimary,
+                                  fontSize: 13,
+                                ),
                               ),
                               TextSpan(
                                 text: item.text,
-                                style: GoogleFonts.dmSans(color: AppColors.textSec, fontSize: 13),
+                                style: GoogleFonts.dmSans(
+                                  color: AppColors.textSec,
+                                  fontSize: 13,
+                                ),
                               ),
                             ],
                           ),
                         ),
-                        trailing: Text(item.time, style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint)),
-                        onTap: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Abriendo actividad de ${item.user}'))),
+                        trailing: Text(
+                          item.time,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 11,
+                            color: AppColors.textHint,
+                          ),
+                        ),
+                        onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Abriendo actividad de ${item.user}'),
+                          ),
+                        ),
                       ),
                     );
                   },
@@ -1798,7 +2231,13 @@ class _NotificationItem {
   final IconData icon;
   final Color color;
 
-  const _NotificationItem(this.user, this.text, this.time, this.icon, this.color);
+  const _NotificationItem(
+    this.user,
+    this.text,
+    this.time,
+    this.icon,
+    this.color,
+  );
 }
 
 class _SearchSheet extends StatefulWidget {
@@ -1815,8 +2254,16 @@ class _SearchSheetState extends State<_SearchSheet> {
   final Set<String> _following = {};
   final List<_SearchResult> _results = const [
     _SearchResult('sofia.styles', 'Capsulas de oficina', Icons.work_outline),
-    _SearchResult('marta.fashion', 'Streetwear y color', Icons.palette_outlined),
-    _SearchResult('lucia.vintage', 'Vintage sostenible', Icons.recycling_outlined),
+    _SearchResult(
+      'marta.fashion',
+      'Streetwear y color',
+      Icons.palette_outlined,
+    ),
+    _SearchResult(
+      'lucia.vintage',
+      'Vintage sostenible',
+      Icons.recycling_outlined,
+    ),
     _SearchResult('andrea.glam', 'Looks de noche', Icons.nightlife_outlined),
     _SearchResult('carmen.b', 'Minimal mediterraneo', Icons.wb_sunny_outlined),
     _SearchResult('#Oficina', 'Blazers, mocasines y denim', Icons.tag),
@@ -1829,7 +2276,11 @@ class _SearchSheetState extends State<_SearchSheet> {
     final query = _query.trim().toLowerCase();
     if (query.isEmpty) return _results;
     return _results
-        .where((item) => item.title.toLowerCase().contains(query) || item.subtitle.toLowerCase().contains(query))
+        .where(
+          (item) =>
+              item.title.toLowerCase().contains(query) ||
+              item.subtitle.toLowerCase().contains(query),
+        )
         .toList();
   }
 
@@ -1845,7 +2296,9 @@ class _SearchSheetState extends State<_SearchSheet> {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.74),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.74,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1857,7 +2310,11 @@ class _SearchSheetState extends State<_SearchSheet> {
               style: GoogleFonts.dmSans(fontSize: 14),
               onChanged: (value) => setState(() => _query = value),
               decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.textHint, size: 20),
+                prefixIcon: const Icon(
+                  Icons.search_rounded,
+                  color: AppColors.textHint,
+                  size: 20,
+                ),
                 suffixIcon: _query.isEmpty
                     ? null
                     : IconButton(
@@ -1874,11 +2331,14 @@ class _SearchSheetState extends State<_SearchSheet> {
             Expanded(
               child: filtered.isEmpty
                   ? Center(
-                      child: Text('Sin resultados', style: GoogleFonts.dmSans(color: AppColors.textHint)),
+                      child: Text(
+                        'Sin resultados',
+                        style: GoogleFonts.dmSans(color: AppColors.textHint),
+                      ),
                     )
                   : ListView.separated(
                       itemCount: filtered.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      separatorBuilder: (_, _) => const Divider(height: 1),
                       itemBuilder: (_, index) {
                         final result = filtered[index];
                         final isFollowing = _following.contains(result.title);
@@ -1886,22 +2346,52 @@ class _SearchSheetState extends State<_SearchSheet> {
                           contentPadding: EdgeInsets.zero,
                           leading: CircleAvatar(
                             backgroundColor: AppColors.accentBg,
-                            child: Icon(result.icon, color: AppColors.primary, size: 19),
+                            child: Icon(
+                              result.icon,
+                              color: AppColors.primary,
+                              size: 19,
+                            ),
                           ),
-                          title: Text(result.title, style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 14)),
-                          subtitle: Text(result.subtitle, style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint)),
+                          title: Text(
+                            result.title,
+                            style: GoogleFonts.dmSans(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                            ),
+                          ),
+                          subtitle: Text(
+                            result.subtitle,
+                            style: GoogleFonts.dmSans(
+                              fontSize: 11,
+                              color: AppColors.textHint,
+                            ),
+                          ),
                           trailing: result.title.startsWith('#')
                               ? const Icon(Icons.chevron_right_rounded)
                               : TextButton(
                                   onPressed: () => setState(() {
-                                    isFollowing ? _following.remove(result.title) : _following.add(result.title);
+                                    isFollowing
+                                        ? _following.remove(result.title)
+                                        : _following.add(result.title);
                                   }),
                                   style: TextButton.styleFrom(
-                                    foregroundColor: isFollowing ? AppColors.textSec : AppColors.primary,
-                                    backgroundColor: isFollowing ? AppColors.bgPage : AppColors.accentBg,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    foregroundColor: isFollowing
+                                        ? AppColors.textSec
+                                        : AppColors.primary,
+                                    backgroundColor: isFollowing
+                                        ? AppColors.bgPage
+                                        : AppColors.accentBg,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
                                   ),
-                                  child: Text(isFollowing ? 'Siguiendo' : 'Seguir', style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 12)),
+                                  child: Text(
+                                    isFollowing ? 'Siguiendo' : 'Seguir',
+                                    style: GoogleFonts.dmSans(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 12,
+                                    ),
+                                  ),
                                 ),
                           onTap: () {
                             Navigator.pop(context);
@@ -1954,13 +2444,31 @@ class _OutfitPreview extends StatelessWidget {
                 ),
               ),
               child: Center(
-                child: FashionIcon(category: post.fashionCategory, color: Colors.white, size: 82, strokeWidth: 2.4),
+                child: FashionIcon(
+                  category: post.fashionCategory,
+                  color: Colors.white,
+                  size: 82,
+                  strokeWidth: 2.4,
+                ),
               ),
             ),
             const SizedBox(height: 16),
-            Text(post.outfitTitle, style: GoogleFonts.playfairDisplay(fontSize: 24, fontWeight: FontWeight.w800)),
+            Text(
+              post.outfitTitle,
+              style: GoogleFonts.playfairDisplay(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
             const SizedBox(height: 6),
-            Text(post.description, style: GoogleFonts.dmSans(color: AppColors.textSec, fontSize: 13, height: 1.45)),
+            Text(
+              post.description,
+              style: GoogleFonts.dmSans(
+                color: AppColors.textSec,
+                fontSize: 13,
+                height: 1.45,
+              ),
+            ),
             const SizedBox(height: 14),
             Wrap(
               spacing: 8,
@@ -1968,7 +2476,11 @@ class _OutfitPreview extends StatelessWidget {
                   .map(
                     (tag) => Chip(
                       label: Text(tag),
-                      avatar: const Icon(Icons.tag, size: 15, color: AppColors.primary),
+                      avatar: const Icon(
+                        Icons.tag,
+                        size: 15,
+                        color: AppColors.primary,
+                      ),
                     ),
                   )
                   .toList(),
@@ -1978,7 +2490,9 @@ class _OutfitPreview extends StatelessWidget {
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Look anadido a favoritos'))),
+                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Look anadido a favoritos')),
+                    ),
                     icon: const Icon(Icons.favorite_border_rounded, size: 18),
                     label: const Text('Inspirarme'),
                   ),
@@ -1986,8 +2500,14 @@ class _OutfitPreview extends StatelessWidget {
                 const SizedBox(width: 10),
                 IconButton.outlined(
                   onPressed: () {
-                    Clipboard.setData(ClipboardData(text: 'https://outfy.app/outfit/${post.username}'));
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Outfit copiado')));
+                    Clipboard.setData(
+                      ClipboardData(
+                        text: 'https://outfy.app/outfit/${post.username}',
+                      ),
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Outfit copiado')),
+                    );
                   },
                   icon: const Icon(Icons.ios_share_rounded),
                 ),

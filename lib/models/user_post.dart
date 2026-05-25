@@ -5,8 +5,11 @@ class PostComment {
   final String user;
   final String text;
   final String timeAgo;
-  const PostComment(
-      {required this.user, required this.text, required this.timeAgo});
+  const PostComment({
+    required this.user,
+    required this.text,
+    required this.timeAgo,
+  });
 }
 
 class PostWardrobeItem {
@@ -24,6 +27,7 @@ class PostWardrobeItem {
 
 class UserPost {
   final String id;
+  final String userId;
   final String title;
   final String description;
   final List<String> tags;
@@ -39,6 +43,7 @@ class UserPost {
 
   const UserPost({
     required this.id,
+    required this.userId,
     required this.title,
     required this.description,
     required this.tags,
@@ -52,13 +57,10 @@ class UserPost {
     this.comments = const [],
   });
 
-  UserPost copyWith({
-    int? likes,
-    bool? isLiked,
-    List<PostComment>? comments,
-  }) {
+  UserPost copyWith({int? likes, bool? isLiked, List<PostComment>? comments}) {
     return UserPost(
       id: id,
+      userId: userId,
       title: title,
       description: description,
       tags: tags,
