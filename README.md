@@ -171,5 +171,5 @@ Para más detalles, consulta [`arquitectura/README.md`](arquitectura/README.md) 
 
 ## Autor
 
-**Aitor** · DAM 2025  
+**- Sergio Romero,Aitor Pérez,Aarón Hidalgo** · DAM 2025  
 Proyecto TFG — Desarrollo de Aplicaciones Multiplataforma
