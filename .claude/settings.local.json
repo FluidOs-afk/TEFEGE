@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where python3 *)",
+      "Bash(where py *)",
+      "Bash(Get-Command python*)",
+      "Bash(Select-String -Pattern \"python\")",
+      "PowerShell(py --version 2>&1)",
+      "PowerShell(python3 --version 2>&1)",
+      "Bash(gh release *)",
+      "Bash(Get-ChildItem -Recurse -Force)",
+      "Bash(Select-Object -First 100)",
+      "Bash(Format-Table FullName)"
+    ]
+  }
+}

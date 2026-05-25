@@ -7,6 +7,7 @@ import '../services/posts_service.dart';
 import '../services/profile_service.dart';
 import '../widgets/fashion_icon.dart';
 import 'edit_profile_screen.dart';
+import 'settings_screen.dart';
 import 'create_post_screen.dart';
 import 'post_detail_screen.dart';
 
@@ -56,6 +57,12 @@ class _ProfileScreenState extends State<ProfileScreen>
   void _openEditProfile() {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+    );
+  }
+
+  void _openSettings() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const SettingsScreen()),
     );
   }
 
@@ -121,7 +128,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   onPressed: () {}),
               IconButton(
                   icon: const Icon(Icons.settings_outlined),
-                  onPressed: _openEditProfile),
+                  onPressed: _openSettings),
             ],
             flexibleSpace: LayoutBuilder(
               builder: (ctx, constraints) {
@@ -235,12 +242,17 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
         ]),
         const SizedBox(height: 12),
-        Text(_profile.username,
+        Text(_profile.displayName,
             style: GoogleFonts.dmSans(
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
                 color: AppColors.textPrimary)),
-        const SizedBox(height: 3),
+        const SizedBox(height: 2),
+        Text('@${_profile.username}',
+            style: GoogleFonts.dmSans(
+                fontSize: 13,
+                color: AppColors.textSec)),
+        const SizedBox(height: 6),
         if (_profile.location.isNotEmpty) ...[
           Row(children: [
             const Icon(Icons.location_on_outlined,
