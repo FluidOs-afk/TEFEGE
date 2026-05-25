@@ -8,6 +8,7 @@ class UserProfile {
   final String displayName;
   final String bio;
   final String location;
+  final String? profileImagePath;
   final DateTime? lastUsernameChange;
   final int followersCount;
   final int followingCount;
@@ -19,6 +20,7 @@ class UserProfile {
     required this.displayName,
     required this.bio,
     required this.location,
+    this.profileImagePath,
     this.lastUsernameChange,
     this.followersCount = 0,
     this.followingCount = 0,
@@ -52,6 +54,7 @@ class UserProfile {
     String? displayName,
     String? bio,
     String? location,
+    String? profileImagePath,
     DateTime? lastUsernameChange,
     bool clearLastUsernameChange = false,
     int? followersCount,
@@ -64,6 +67,7 @@ class UserProfile {
       displayName: displayName ?? this.displayName,
       bio: bio ?? this.bio,
       location: location ?? this.location,
+      profileImagePath: profileImagePath ?? this.profileImagePath,
       lastUsernameChange: clearLastUsernameChange
           ? null
           : (lastUsernameChange ?? this.lastUsernameChange),
@@ -74,30 +78,34 @@ class UserProfile {
   }
 
   Map<String, dynamic> toJson() => {
-    'userId': userId,
-    'username': username,
-    'displayName': displayName,
-    'bio': bio,
-    'location': location,
-    'lastUsernameChange': lastUsernameChange?.millisecondsSinceEpoch,
-    'followersCount': followersCount,
-    'followingCount': followingCount,
-    'followedBy': followedBy,
-  };
+        'userId': userId,
+        'username': username,
+        'displayName': displayName,
+        'bio': bio,
+        'location': location,
+        'profileImagePath': profileImagePath,
+        'lastUsernameChange': lastUsernameChange?.millisecondsSinceEpoch,
+        'followersCount': followersCount,
+        'followingCount': followingCount,
+        'followedBy': followedBy,
+      };
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
-    userId: json['userId'] as String? ?? '',
-    username: json['username'] as String? ?? 'usuario',
-    displayName: json['displayName'] as String? ?? 'Usuario',
-    bio: json['bio'] as String? ?? '',
-    location: json['location'] as String? ?? '',
-    lastUsernameChange: json['lastUsernameChange'] != null
-        ? DateTime.fromMillisecondsSinceEpoch(json['lastUsernameChange'] as int)
-        : null,
-    followersCount: json['followersCount'] as int? ?? 0,
-    followingCount: json['followingCount'] as int? ?? 0,
-    followedBy: List<String>.from(json['followedBy'] as List? ?? []),
-  );
+        userId: json['userId'] as String? ?? UserProfile.defaultProfile.userId,
+        username: json['username'] as String? ?? 'usuario',
+        displayName: json['displayName'] as String? ?? 'Usuario',
+        bio: json['bio'] as String? ?? '',
+        location: json['location'] as String? ?? '',
+        profileImagePath: json['profileImagePath'] as String?,
+        lastUsernameChange: json['lastUsernameChange'] != null
+            ? DateTime.fromMillisecondsSinceEpoch(
+                json['lastUsernameChange'] as int,
+              )
+            : null,
+        followersCount: json['followersCount'] as int? ?? 0,
+        followingCount: json['followingCount'] as int? ?? 0,
+        followedBy: List<String>.from(json['followedBy'] as List? ?? []),
+      );
 
   static const defaultProfile = UserProfile(
     userId: 'u_sergio',

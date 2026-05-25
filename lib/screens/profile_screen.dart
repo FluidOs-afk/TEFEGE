@@ -7,6 +7,7 @@ import '../services/posts_service.dart';
 import '../services/profile_service.dart';
 import '../services/users_service.dart';
 import '../widgets/fashion_icon.dart';
+import 'change_password_screen.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
 import 'create_post_screen.dart';
@@ -96,6 +97,12 @@ class _ProfileScreenState extends State<ProfileScreen>
         UsersService.instance.followUser(widget.userId!);
       }
     }
+  }
+
+  void _openChangePassword() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
+    );
   }
 
   void _openCreatePost() {
@@ -204,6 +211,14 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ],
                 );
               },
+            ),
+          ),
+
+          // ─── Cambiar contraseña ───────────────────────────────────────────
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: _buildChangePasswordTile(),
             ),
           ),
 
@@ -469,6 +484,53 @@ class _ProfileScreenState extends State<ProfileScreen>
           style: GoogleFonts.dmSans(fontSize: 10, color: AppColors.textHint),
         ),
       ],
+    );
+  }
+
+  // ─── Cambiar contraseña tile ──────────────────────────────────────────────────
+  Widget _buildChangePasswordTile() {
+    return Material(
+      color: AppColors.bgCard,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: _openChangePassword,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF26A69A).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: const Icon(Icons.lock_outline_rounded,
+                    size: 18, color: Color(0xFF26A69A)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Cambiar contraseña',
+                        style: GoogleFonts.dmSans(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: AppColors.textPrimary)),
+                    Text('Actualiza tu contraseña de acceso',
+                        style: GoogleFonts.dmSans(
+                            fontSize: 11.5, color: AppColors.textHint)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded,
+                  color: AppColors.textHint, size: 18),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

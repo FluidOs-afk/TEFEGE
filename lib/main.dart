@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:provider/provider.dart';
+import 'providers/auth_provider.dart';
 import 'screens/feed_screen.dart';
 import 'screens/wardrobe_screen.dart';
 import 'screens/forum_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/ai_outfits_screen.dart';
+import 'screens/splash_screen.dart';
 
 // ─── Design Tokens ─────────────────────────────────────────────────────────────
 abstract class AppColors {
@@ -22,8 +26,9 @@ abstract class AppColors {
 }
 
 // ─── App ───────────────────────────────────────────────────────────────────────
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('es', null);
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
@@ -32,7 +37,16 @@ void main() {
     systemNavigationBarIconBrightness: Brightness.light,
     systemNavigationBarContrastEnforced: false,
   ));
-  runApp(const OutfyApp());
+
+  final authProvider = AuthProvider();
+  await authProvider.checkSession();
+
+  runApp(
+    ChangeNotifierProvider.value(
+      value: authProvider,
+      child: const OutfyApp(),
+    ),
+  );
 }
 
 class OutfyApp extends StatelessWidget {
@@ -153,7 +167,7 @@ class OutfyApp extends StatelessWidget {
           shape: StadiumBorder(),
         ),
       ),
-      home: const MainScreen(),
+      home: const SplashScreen(),
     );
   }
 }

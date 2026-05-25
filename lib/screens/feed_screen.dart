@@ -1149,7 +1149,7 @@ class _FeedStatusBar extends StatelessWidget {
                 ),
                 const SizedBox(width: 5),
                 Text(
-                  'Curado',
+                  'Filtros',
                   style: GoogleFonts.dmSans(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
