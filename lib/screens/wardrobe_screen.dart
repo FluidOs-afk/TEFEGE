@@ -19,6 +19,7 @@ class _WardrobeScreenState extends State<WardrobeScreen>
   String _selectedColor = 'Todos';
   String _selectedStyle = 'Todos';
   final ImagePicker _picker = ImagePicker();
+  String _searchQuery = '';
 
   final List<_Cat> _cats = [
     _Cat('Todo', Icons.apps_rounded),
@@ -70,7 +71,12 @@ class _WardrobeScreenState extends State<WardrobeScreen>
             _selectedCatIndex == 0 || g.cat == _cats[_selectedCatIndex].name;
         final colorOk = _selectedColor == 'Todos' || g.color == _selectedColor;
         final styleOk = _selectedStyle == 'Todos' || g.style == _selectedStyle;
-        return catOk && colorOk && styleOk;
+        final q = _searchQuery.toLowerCase();
+        final searchOk = q.isEmpty ||
+            g.name.toLowerCase().contains(q) ||
+            g.brand.toLowerCase().contains(q) ||
+            g.color.toLowerCase().contains(q);
+        return catOk && colorOk && styleOk && searchOk;
       }).toList();
 
   @override
@@ -246,7 +252,7 @@ class _WardrobeScreenState extends State<WardrobeScreen>
                       color: AppColors.textPrimary)),
               const SizedBox(height: 8),
               ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () => _showCreateOutfitDialog(context),
                   child: const Text('Crear outfit')),
             ]),
           )
@@ -500,7 +506,10 @@ class _WardrobeScreenState extends State<WardrobeScreen>
                     Row(children: [
                       Expanded(
                           child: OutlinedButton.icon(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _showEditGarment(context, g);
+                        },
                         icon: const Icon(Icons.edit_outlined, size: 16),
                         label: const Text('Editar'),
                       )),
@@ -509,9 +518,7 @@ class _WardrobeScreenState extends State<WardrobeScreen>
                           child: ElevatedButton.icon(
                         onPressed: () {
                           Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Añadida al outfit')));
+                          _showCreateOutfitWithGarment(context, g);
                         },
                         icon: const Icon(Icons.add, size: 16),
                         label: const Text('Usar en outfit'),
@@ -637,24 +644,31 @@ class _WardrobeScreenState extends State<WardrobeScreen>
   }
 
   void _showSearch(BuildContext context) {
+    final ctrl = TextEditingController(text: _searchQuery);
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Buscar en mi armario',
             style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
-        content: const TextField(
+        content: TextField(
+            controller: ctrl,
             autofocus: true,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
                 hintText: 'Nombre, marca, color...',
                 prefixIcon: Icon(Icons.search))),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar')),
+              onPressed: () {
+                setState(() => _searchQuery = '');
+                Navigator.pop(context);
+              },
+              child: const Text('Limpiar')),
           ElevatedButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                setState(() => _searchQuery = ctrl.text.trim());
+                Navigator.pop(context);
+              },
               child: const Text('Buscar')),
         ],
       ),
@@ -755,6 +769,147 @@ class _WardrobeScreenState extends State<WardrobeScreen>
           ),
         ),
       ),
+    );
+  }
+
+  // ─── Edit Garment ─────────────────────────────────────────────────────────
+  void _showEditGarment(BuildContext context, _Garment g) {
+    final nameCtrl = TextEditingController(text: g.name);
+    final brandCtrl = TextEditingController(text: g.brand);
+    String selColor = g.color;
+    String selStyle = g.style;
+    String selCat = g.cat;
+    const colors = ['Blanco','Negro','Beige','Rosa','Azul','Marrón','Dorado'];
+    const styles = ['Casual','Elegante','Sport','Vintage'];
+    const cats = ['Tops','Pantalones','Vestidos','Zapatos','Accesorios','Abrigos'];
+    showModalBottomSheet(
+      context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
+      builder: (_) => _Sheet(child: StatefulBuilder(builder: (ctx, setLocal) =>
+        SingleChildScrollView(padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16, left: 20, right: 20, top: 16),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const _SheetHandle(), const SizedBox(height: 14),
+            Text('Editar prenda', style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 14),
+            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Nombre', border: OutlineInputBorder())),
+            const SizedBox(height: 10),
+            TextField(controller: brandCtrl, decoration: const InputDecoration(labelText: 'Marca', border: OutlineInputBorder())),
+            const SizedBox(height: 12),
+            Text('Color', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, color: AppColors.textSec)),
+            const SizedBox(height: 6),
+            Wrap(spacing: 6, runSpacing: 4, children: colors.map((c) => ChoiceChip(
+              label: Text(c), selected: selColor == c,
+              selectedColor: AppColors.primary.withOpacity(0.15),
+              checkmarkColor: AppColors.primary,
+              onSelected: (_) => setLocal(() => selColor = c),
+            )).toList()),
+            const SizedBox(height: 12),
+            Text('Estilo', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, color: AppColors.textSec)),
+            const SizedBox(height: 6),
+            Wrap(spacing: 6, runSpacing: 4, children: styles.map((s) => ChoiceChip(
+              label: Text(s), selected: selStyle == s,
+              selectedColor: AppColors.primary.withOpacity(0.15),
+              checkmarkColor: AppColors.primary,
+              onSelected: (_) => setLocal(() => selStyle = s),
+            )).toList()),
+            const SizedBox(height: 12),
+            Text('Categoría', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, color: AppColors.textSec)),
+            const SizedBox(height: 6),
+            Wrap(spacing: 6, runSpacing: 4, children: cats.map((c) => ChoiceChip(
+              label: Text(c), selected: selCat == c,
+              selectedColor: AppColors.primary.withOpacity(0.15),
+              checkmarkColor: AppColors.primary,
+              onSelected: (_) => setLocal(() => selCat = c),
+            )).toList()),
+            const SizedBox(height: 18),
+            Row(children: [
+              Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar'))),
+              const SizedBox(width: 10),
+              Expanded(child: ElevatedButton(
+                onPressed: () {
+                  final idx = _garments.indexWhere((x) => x.name == g.name);
+                  if (idx != -1) {
+                    setState(() {
+                      _garments[idx] = _Garment(
+                        name: nameCtrl.text.trim().isEmpty ? g.name : nameCtrl.text.trim(),
+                        brand: brandCtrl.text.trim().isEmpty ? g.brand : brandCtrl.text.trim(),
+                        color: selColor, style: selStyle, bg: g.bg, cat: selCat, fav: g.fav,
+                      );
+                    });
+                  }
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Prenda actualizada ✓')));
+                },
+                child: const Text('Guardar'),
+              )),
+            ]),
+            const SizedBox(height: 8),
+          ]),
+        ),
+      )),
+    );
+  }
+
+  // ─── Create / Build Outfit ────────────────────────────────────────────────
+  void _showCreateOutfitDialog(BuildContext context) => _openOutfitBuilder(context, null);
+  void _showCreateOutfitWithGarment(BuildContext context, _Garment g) => _openOutfitBuilder(context, g);
+
+  void _openOutfitBuilder(BuildContext context, _Garment? pre) {
+    final titleCtrl = TextEditingController();
+    final Set<String> selected = pre != null ? {pre.name} : {};
+    showModalBottomSheet(
+      context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
+      builder: (_) => _Sheet(child: StatefulBuilder(builder: (ctx, setLocal) =>
+        Padding(padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom + 16),
+          child: SizedBox(height: MediaQuery.of(ctx).size.height * 0.78,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Padding(padding: const EdgeInsets.fromLTRB(20,16,20,0), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const _SheetHandle(), const SizedBox(height: 14),
+                Text(pre != null ? 'Outfit con "${pre.name}"' : 'Crear outfit',
+                    style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 12),
+                TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: 'Nombre del outfit', border: OutlineInputBorder())),
+                const SizedBox(height: 12),
+                Text('Selecciona prendas (${selected.length})',
+                    style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, color: AppColors.textSec)),
+                const SizedBox(height: 4),
+              ])),
+              Expanded(child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: _garments.length,
+                itemBuilder: (_, i) {
+                  final item = _garments[i];
+                  final isSel = selected.contains(item.name);
+                  return CheckboxListTile(
+                    value: isSel,
+                    onChanged: (_) => setLocal(() => isSel ? selected.remove(item.name) : selected.add(item.name)),
+                    title: Text(item.name, style: GoogleFonts.dmSans(fontWeight: FontWeight.w600)),
+                    subtitle: Text('${item.brand} · ${item.cat}', style: GoogleFonts.dmSans(fontSize: 12, color: AppColors.textHint)),
+                    activeColor: AppColors.primary,
+                    controlAffinity: ListTileControlAffinity.trailing,
+                    contentPadding: EdgeInsets.zero,
+                  );
+                },
+              )),
+              Padding(padding: const EdgeInsets.fromLTRB(20,10,20,0),
+                child: SizedBox(width: double.infinity, child: ElevatedButton(
+                  onPressed: selected.isEmpty ? null : () {
+                    final title = titleCtrl.text.trim().isEmpty ? 'Mi Outfit' : titleCtrl.text.trim();
+                    setState(() => _outfits.add(_Outfit(
+                      title: title, items: selected.toList(),
+                      bg: pre?.bg ?? const Color(0xFFE8F5EE), isAi: false,
+                    )));
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Outfit "$title" creado ✓')));
+                  },
+                  child: const Text('Crear outfit'),
+                )),
+              ),
+              const SizedBox(height: 8),
+            ]),
+          ),
+        ),
+      )),
     );
   }
 }
