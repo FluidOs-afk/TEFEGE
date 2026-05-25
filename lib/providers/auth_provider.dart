@@ -169,6 +169,7 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> _syncProfile(UserModel user) async {
     await ProfileService.instance.save(UserProfile(
+      userId: user.id,
       username: user.username,
       displayName: user.displayName,
       bio: user.bio ?? '',
