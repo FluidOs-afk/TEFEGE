@@ -5,6 +5,7 @@ import '../main.dart' show AppColors;
 import '../providers/auth_provider.dart';
 import '../services/profile_service.dart';
 import '../services/settings_service.dart';
+import 'change_password_screen.dart';
 import 'edit_profile_screen.dart';
 import 'legal_screen.dart';
 import 'login_screen.dart';
@@ -120,9 +121,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               icon: Icons.lock_outline_rounded,
               iconColor: const Color(0xFF26A69A),
               title: 'Cambiar contraseña',
-              subtitle: 'Próximamente disponible',
-              onTap: () => _showComingSoon('Cambiar contraseña'),
-              disabled: true,
+              subtitle: 'Actualiza tu contraseña de acceso',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (_) => const ChangePasswordScreen()),
+              ),
             ),
             _divider(),
             _navTile(
