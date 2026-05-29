@@ -87,6 +87,65 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
+  Future<void> _forgotPassword() async {
+    final resetEmailCtrl = TextEditingController(text: _emailCtrl.text.trim());
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Recuperar contraseña',
+          style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 17),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Introduce tu email y te enviaremos un enlace para restablecer tu contraseña.',
+              style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.textSec),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: resetEmailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: 'Correo electrónico',
+                prefixIcon: const Icon(Icons.email_outlined, size: 20),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('Cancelar',
+                style: GoogleFonts.dmSans(color: AppColors.textSec)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('Enviar',
+                style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final email = resetEmailCtrl.text.trim();
+    if (email.isEmpty) return;
+    final auth = context.read<AuthProvider>();
+    final result = await auth.sendPasswordReset(email);
+    if (!mounted) return;
+    if (result.success) {
+      showOutfySnackBar(context, 'Email de recuperación enviado',
+          icon: Icons.mark_email_read_outlined);
+    } else {
+      showOutfySnackBar(context, result.errorMessage ?? 'Error al enviar email',
+          isError: true);
+    }
+  }
+
   void _goToRegister() {
     Navigator.of(context).push(
       PageRouteBuilder(
@@ -338,11 +397,7 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                               const Spacer(),
                               TextButton(
-                                onPressed: () => showOutfySnackBar(
-                                  context,
-                                  'Recuperación disponible próximamente',
-                                  icon: Icons.info_outline_rounded,
-                                ),
+                                onPressed: _forgotPassword,
                                 style: TextButton.styleFrom(
                                   padding: EdgeInsets.zero,
                                   minimumSize: Size.zero,

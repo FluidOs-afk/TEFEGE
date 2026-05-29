@@ -1,31 +1,25 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class PostModel {
+class ForumThread {
   final String id;
   final String userId;
   final String username;
-  final String userAvatarBase64;
+  final String avatarBase64;
   final String title;
-  final String description;
-  final List<String> tags;
   final String category;
-  final String imageBase64;
-  final List<String> wardrobeItems;
+  final String content;
   final int likes;
   final List<String> likedBy;
   final DateTime createdAt;
 
-  const PostModel({
+  const ForumThread({
     required this.id,
     required this.userId,
     required this.username,
-    this.userAvatarBase64 = '',
+    this.avatarBase64 = '',
     required this.title,
-    this.description = '',
-    this.tags = const [],
-    this.category = '',
-    this.imageBase64 = '',
-    this.wardrobeItems = const [],
+    required this.category,
+    required this.content,
     this.likes = 0,
     this.likedBy = const [],
     required this.createdAt,
@@ -33,19 +27,16 @@ class PostModel {
 
   bool isLikedBy(String uid) => likedBy.contains(uid);
 
-  factory PostModel.fromFirestore(DocumentSnapshot doc) {
+  factory ForumThread.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    return PostModel(
+    return ForumThread(
       id: doc.id,
       userId: data['userId'] as String? ?? '',
       username: data['username'] as String? ?? '',
-      userAvatarBase64: data['userAvatarBase64'] as String? ?? '',
+      avatarBase64: data['avatarBase64'] as String? ?? '',
       title: data['title'] as String? ?? '',
-      description: data['description'] as String? ?? '',
-      tags: List<String>.from(data['tags'] as List? ?? []),
       category: data['category'] as String? ?? '',
-      imageBase64: data['imageBase64'] as String? ?? '',
-      wardrobeItems: List<String>.from(data['wardrobeItems'] as List? ?? []),
+      content: data['content'] as String? ?? '',
       likes: data['likes'] as int? ?? 0,
       likedBy: List<String>.from(data['likedBy'] as List? ?? []),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -55,44 +46,35 @@ class PostModel {
   Map<String, dynamic> toFirestore() => {
         'userId': userId,
         'username': username,
-        'userAvatarBase64': userAvatarBase64,
+        'avatarBase64': avatarBase64,
         'title': title,
-        'description': description,
-        'tags': tags,
         'category': category,
-        'imageBase64': imageBase64,
-        'wardrobeItems': wardrobeItems,
+        'content': content,
         'likes': likes,
         'likedBy': likedBy,
         'createdAt': FieldValue.serverTimestamp(),
       };
 
-  PostModel copyWith({
+  ForumThread copyWith({
     String? id,
     String? userId,
     String? username,
-    String? userAvatarBase64,
+    String? avatarBase64,
     String? title,
-    String? description,
-    List<String>? tags,
     String? category,
-    String? imageBase64,
-    List<String>? wardrobeItems,
+    String? content,
     int? likes,
     List<String>? likedBy,
     DateTime? createdAt,
   }) =>
-      PostModel(
+      ForumThread(
         id: id ?? this.id,
         userId: userId ?? this.userId,
         username: username ?? this.username,
-        userAvatarBase64: userAvatarBase64 ?? this.userAvatarBase64,
+        avatarBase64: avatarBase64 ?? this.avatarBase64,
         title: title ?? this.title,
-        description: description ?? this.description,
-        tags: tags ?? this.tags,
         category: category ?? this.category,
-        imageBase64: imageBase64 ?? this.imageBase64,
-        wardrobeItems: wardrobeItems ?? this.wardrobeItems,
+        content: content ?? this.content,
         likes: likes ?? this.likes,
         likedBy: likedBy ?? this.likedBy,
         createdAt: createdAt ?? this.createdAt,

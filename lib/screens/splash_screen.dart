@@ -72,6 +72,13 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 120));
     _subtitleCtrl.forward();
     await Future.delayed(const Duration(milliseconds: 1100));
+    // Esperar a que Firebase Auth resuelva el estado de sesión
+    if (!mounted) return;
+    final auth = context.read<AuthProvider>();
+    while (!auth.isInitialized) {
+      await Future.delayed(const Duration(milliseconds: 100));
+      if (!mounted) return;
+    }
     _navigate();
   }
 

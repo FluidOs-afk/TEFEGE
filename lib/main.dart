@@ -3,7 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'providers/auth_provider.dart';
+import 'services/notifications_service.dart';
 import 'screens/feed_screen.dart';
 import 'screens/wardrobe_screen.dart';
 import 'screens/forum_screen.dart';
@@ -26,8 +29,13 @@ abstract class AppColors {
 }
 
 // ─── App ───────────────────────────────────────────────────────────────────────
+final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '.env');
+  await Firebase.initializeApp();
+  await NotificationsService.instance.init(scaffoldMessengerKey);
   await initializeDateFormatting('es', null);
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -38,12 +46,9 @@ void main() async {
     systemNavigationBarContrastEnforced: false,
   ));
 
-  final authProvider = AuthProvider();
-  await authProvider.checkSession();
-
   runApp(
-    ChangeNotifierProvider.value(
-      value: authProvider,
+    ChangeNotifierProvider(
+      create: (_) => AuthProvider(),
       child: const OutfyApp(),
     ),
   );
@@ -58,6 +63,7 @@ class OutfyApp extends StatelessWidget {
     return MaterialApp(
       title: 'OUTFY',
       debugShowCheckedModeBanner: false,
+      scaffoldMessengerKey: scaffoldMessengerKey,
       theme: ThemeData(
         useMaterial3: true,
         textTheme: base.copyWith(
@@ -221,7 +227,7 @@ class _OutfyNavBar extends StatelessWidget {
         border: const Border(top: BorderSide(color: AppColors.border, width: 1)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 24,
             offset: const Offset(0, -6),
           ),
@@ -304,7 +310,7 @@ class _OutfyNavBar extends StatelessWidget {
               borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withOpacity(on ? 0.5 : 0.30),
+                  color: AppColors.primary.withValues(alpha: on ? 0.5 : 0.30),
                   blurRadius: on ? 16 : 10,
                   offset: const Offset(0, 4),
                 ),

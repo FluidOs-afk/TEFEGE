@@ -1,15 +1,27 @@
-import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../main.dart' show AppColors;
+import '../models/post_model.dart';
 import '../models/user_post.dart';
+import '../providers/auth_provider.dart';
 import '../services/posts_service.dart';
-import '../widgets/fashion_icon.dart';
+import '../utils/image_utils.dart';
+import 'profile_screen.dart';
+
+String _timeAgo(DateTime dt) {
+  final d = DateTime.now().difference(dt);
+  if (d.inMinutes < 1) return 'Ahora';
+  if (d.inMinutes < 60) return 'Hace ${d.inMinutes}min';
+  if (d.inHours < 24) return 'Hace ${d.inHours}h';
+  if (d.inDays < 7) return 'Hace ${d.inDays}d';
+  return 'Hace ${(d.inDays / 7).floor()}sem';
+}
 
 class PostDetailScreen extends StatefulWidget {
   final String postId;
-  final VoidCallback? onDeleted;
-  const PostDetailScreen({super.key, required this.postId, this.onDeleted});
+  const PostDetailScreen({super.key, required this.postId});
 
   @override
   State<PostDetailScreen> createState() => _PostDetailScreenState();
@@ -17,674 +29,343 @@ class PostDetailScreen extends StatefulWidget {
 
 class _PostDetailScreenState extends State<PostDetailScreen>
     with SingleTickerProviderStateMixin {
-  late AnimationController _heartCtrl;
-  late Animation<double> _heartAnim;
+  late final AnimationController _heartCtrl;
+  late final Animation<double> _heartAnim;
   final _commentCtrl = TextEditingController();
-  bool _saved = false;
+  bool _likeLoading = false;
+  bool _sendingComment = false;
 
   @override
   void initState() {
     super.initState();
-    _heartCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _heartAnim = Tween<double>(
-      begin: 1.0,
-      end: 1.5,
-    ).chain(CurveTween(curve: Curves.elasticOut)).animate(_heartCtrl);
-    PostsService.instance.addListener(_onChanged);
-  }
-
-  void _onChanged() {
-    if (mounted) setState(() {});
+    _heartCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
+    _heartAnim = Tween<double>(begin: 1.0, end: 1.5)
+        .chain(CurveTween(curve: Curves.elasticOut)).animate(_heartCtrl);
   }
 
   @override
   void dispose() {
-    PostsService.instance.removeListener(_onChanged);
     _heartCtrl.dispose();
     _commentCtrl.dispose();
     super.dispose();
   }
 
-  UserPost? get _post {
-    try {
-      return PostsService.instance.posts.firstWhere(
-        (p) => p.id == widget.postId,
-      );
-    } catch (_) {
-      return null;
-    }
-  }
-
-  void _handleLike() {
-    PostsService.instance.toggleLike(widget.postId);
+  Future<void> _handleLike(PostModel post, String currentUid) async {
+    if (_likeLoading) return;
+    setState(() => _likeLoading = true);
     _heartCtrl.forward(from: 0);
+    await PostsService.instance.toggleLike(post.id, currentUid);
+    if (mounted) setState(() => _likeLoading = false);
   }
 
-  void _sendComment() {
+  Future<void> _sendComment(PostModel post, String currentUid, String username, String avatarBase64) async {
     final text = _commentCtrl.text.trim();
-    if (text.isEmpty) return;
-    PostsService.instance.addComment(
-      widget.postId,
-      PostComment(user: 'sergio.outfy', text: text, timeAgo: 'Ahora'),
-    );
+    if (text.isEmpty || _sendingComment) return;
+    setState(() => _sendingComment = true);
     _commentCtrl.clear();
     FocusScope.of(context).unfocus();
-  }
-
-  void _confirmDelete(UserPost post) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'Eliminar publicación',
-          style: GoogleFonts.dmSans(fontWeight: FontWeight.w700),
-        ),
-        content: Text(
-          '¿Eliminar "${post.title}"? Esta acción no se puede deshacer.',
-          style: GoogleFonts.dmSans(color: AppColors.textSec),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(
-              'Cancelar',
-              style: GoogleFonts.dmSans(color: AppColors.textSec),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              PostsService.instance.remove(post.id);
-              widget.onDeleted?.call();
-              Navigator.of(context).pop();
-            },
-            child: Text(
-              'Eliminar',
-              style: GoogleFonts.dmSans(
-                color: Colors.red,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
+    await PostsService.instance.addComment(
+      post.id,
+      CommentModel(
+        id: '', userId: currentUid, username: username,
+        avatarBase64: avatarBase64, text: text, createdAt: DateTime.now(),
       ),
     );
-  }
-
-  String _fmt(int n) {
-    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
-    return n.toString();
+    if (mounted) setState(() => _sendingComment = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final post = _post;
-    if (post == null) {
-      return const Scaffold(body: Center(child: Text('Publicación eliminada')));
-    }
+    final auth = context.watch<AuthProvider>();
+    final currentUid = auth.currentUser?.uid ?? '';
+    final username = auth.currentUser?.username ?? '';
+    final avatarBase64 = auth.currentUser?.avatarBase64 ?? '';
 
-    return Scaffold(
-      backgroundColor: AppColors.bgCard,
-      appBar: AppBar(
-        title: Text(
-          post.title,
-          style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 16),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.more_horiz),
-            onPressed: () => _showOptions(post),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── Foto ──────────────────────────────────────────────
-                  _buildPhoto(post),
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('posts').doc(widget.postId).snapshots(),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator(color: AppColors.primary)));
+        }
+        if (!snap.hasData || !snap.data!.exists) {
+          return const Scaffold(body: Center(child: Text('Publicación no encontrada')));
+        }
+        final post = PostModel.fromFirestore(snap.data!);
+        final isLiked = post.isLikedBy(currentUid);
 
-                  // ── Acciones ──────────────────────────────────────────
-                  _buildActions(post),
-
-                  // ── Likes ─────────────────────────────────────────────
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 6),
-                    child: Text(
-                      '${_fmt(post.likes)} me gusta',
-                      style: GoogleFonts.dmSans(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                  ),
-
-                  // ── Descripción ───────────────────────────────────────
-                  if (post.description.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 6),
-                      child: RichText(
-                        text: TextSpan(
-                          children: [
-                            TextSpan(
-                              text: 'sergio.outfy  ',
-                              style: GoogleFonts.dmSans(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            TextSpan(
-                              text: post.description,
-                              style: GoogleFonts.dmSans(
-                                fontSize: 13,
-                                color: AppColors.textSec,
-                                height: 1.45,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                  // ── Tags ──────────────────────────────────────────────
-                  if (post.tags.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
-                      child: Wrap(
-                        spacing: 6,
-                        runSpacing: 2,
-                        children: post.tags
-                            .map(
-                              (t) => Text(
-                                '#$t',
-                                style: GoogleFonts.dmSans(
-                                  fontSize: 12,
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ),
-
-                  // ── Prendas del armario ───────────────────────────────
-                  if (post.wardrobeItems.isNotEmpty) _buildWardrobeRow(post),
-
-                  // ── Comentarios ───────────────────────────────────────
-                  _buildComments(post),
-
-                  const SizedBox(height: 8),
-                ],
-              ),
-            ),
-          ),
-
-          // ── Input comentario ─────────────────────────────────────────
-          SafeArea(top: false, child: _buildCommentInput()),
-        ],
-      ),
-    );
-  }
-
-  // ── Photo area ─────────────────────────────────────────────────────────────
-  Widget _buildPhoto(UserPost post) {
-    final hasRealPhoto =
-        post.imagePath != null && File(post.imagePath!).existsSync();
-
-    return GestureDetector(
-      onDoubleTap: _handleLike,
-      child: AspectRatio(
-        aspectRatio: 1,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Foto real o gradiente de fondo
-            if (hasRealPhoto)
-              Image.file(File(post.imagePath!), fit: BoxFit.cover)
-            else ...[
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: post.gradient,
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+        return Scaffold(
+          backgroundColor: AppColors.bgCard,
+          appBar: AppBar(
+            title: Text(post.title,
+                style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 16)),
+            actions: [
+              if (post.userId == currentUid)
+                IconButton(
+                  icon: const Icon(Icons.more_horiz),
+                  onPressed: () => _showOptions(context, post),
                 ),
-              ),
-              Positioned(
-                right: -24,
-                bottom: -24,
-                child: FashionIcon(
-                  category: post.category,
-                  color: Colors.white.withValues(alpha: 0.07),
-                  size: 260,
-                  strokeWidth: 3,
-                ),
-              ),
-              Center(
-                child: Container(
-                  width: 110,
-                  height: 110,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.25),
-                      width: 1.5,
-                    ),
-                  ),
-                  padding: const EdgeInsets.all(22),
-                  child: FashionIcon(
-                    category: post.category,
-                    color: Colors.white.withValues(alpha: 0.9),
-                    size: 66,
-                    strokeWidth: 2,
-                  ),
-                ),
-              ),
-            ],
-            // Heart like animation
-            Center(
-              child: ScaleTransition(
-                scale: _heartAnim,
-                child: IgnorePointer(
-                  child: AnimatedBuilder(
-                    animation: _heartCtrl,
-                    builder: (context, child) => _heartCtrl.value > 0
-                        ? Icon(
-                            Icons.favorite_rounded,
-                            color: Colors.white.withValues(
-                              alpha: 1 - _heartCtrl.value,
-                            ),
-                            size: 90,
-                          )
-                        : const SizedBox.shrink(),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Action row ─────────────────────────────────────────────────────────────
-  Widget _buildActions(UserPost post) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-      child: Row(
-        children: [
-          _iconBtn(
-            post.isLiked
-                ? Icons.favorite_rounded
-                : Icons.favorite_border_rounded,
-            post.isLiked ? const Color(0xFFEF5350) : AppColors.textPrimary,
-            _handleLike,
-          ),
-          _iconBtn(
-            Icons.chat_bubble_outline_rounded,
-            AppColors.textPrimary,
-            () => FocusScope.of(context).requestFocus(FocusNode()),
-          ),
-          _iconBtn(Icons.near_me_outlined, AppColors.textPrimary, () {}),
-          const Spacer(),
-          _iconBtn(
-            _saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
-            _saved ? AppColors.primary : AppColors.textPrimary,
-            () => setState(() => _saved = !_saved),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _iconBtn(IconData icon, Color color, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Icon(icon, size: 26, color: color),
-      ),
-    );
-  }
-
-  // ── Wardrobe items row ─────────────────────────────────────────────────────
-  Widget _buildWardrobeRow(UserPost post) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.checkroom_rounded,
-                size: 14,
-                color: AppColors.textHint,
-              ),
-              const SizedBox(width: 5),
-              Text(
-                'Prendas de este look',
-                style: GoogleFonts.dmSans(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textHint,
-                ),
-              ),
             ],
           ),
-        ),
-        SizedBox(
-          height: 100,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(14, 0, 14, 0),
-            itemCount: post.wardrobeItems.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 10),
-            itemBuilder: (_, i) => _wardrobeChip(post.wardrobeItems[i]),
-          ),
-        ),
-        const SizedBox(height: 10),
-        const Divider(height: 1),
-      ],
-    );
-  }
-
-  Widget _wardrobeChip(PostWardrobeItem item) {
-    return Container(
-      width: 76,
-      decoration: BoxDecoration(
-        color: item.bgColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      padding: const EdgeInsets.all(8),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          FashionIcon(
-            category: item.category,
-            color: AppColors.textSec,
-            size: 26,
-            strokeWidth: 1.8,
-          ),
-          const SizedBox(height: 5),
-          Text(
-            item.name,
-            style: GoogleFonts.dmSans(
-              fontSize: 9,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
-            maxLines: 2,
-            textAlign: TextAlign.center,
-            overflow: TextOverflow.ellipsis,
-          ),
-          Text(
-            item.brand,
-            style: GoogleFonts.dmSans(fontSize: 8, color: AppColors.textHint),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Comments ───────────────────────────────────────────────────────────────
-  Widget _buildComments(UserPost post) {
-    if (post.comments.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
-        child: Text(
-          'Sin comentarios. Sé el primero.',
-          style: GoogleFonts.dmSans(fontSize: 12, color: AppColors.textHint),
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: post.comments
-            .map(
-              (c) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
+          body: Column(children: [
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Avatar clickeable
                     GestureDetector(
-                      onTap: () {
-                        // Los comentarios podrían navegar al perfil del usuario
-                        // pero primero necesitaríamos mapear usernames a userIds
-                        // Por ahora solo mostramos que es clickeable
-                      },
-                      child: Container(
-                        width: 30,
-                        height: 30,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.accentBg,
-                        ),
-                        child: Center(
-                          child: Text(
-                            c.user[0].toUpperCase(),
-                            style: GoogleFonts.dmSans(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Nombre clickeable
-                          GestureDetector(
-                            onTap: () {
-                              // Similar al avatar - navegar al perfil
-                            },
-                            child: RichText(
-                              text: TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: '${c.user}  ',
-                                    style: GoogleFonts.dmSans(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 13,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                                  TextSpan(
-                                    text: c.text,
-                                    style: GoogleFonts.dmSans(
-                                      fontSize: 13,
-                                      color: AppColors.textSec,
-                                      height: 1.4,
-                                    ),
-                                  ),
-                                ],
+                      onDoubleTap: () => _handleLike(post, currentUid),
+                      child: AspectRatio(
+                        aspectRatio: 1,
+                        child: Stack(fit: StackFit.expand, children: [
+                          post.imageBase64.isNotEmpty
+                              ? ImageUtils.imageFromBase64(post.imageBase64)
+                              : Container(color: AppColors.accentBg,
+                                  child: const Icon(Icons.checkroom_outlined, size: 64, color: AppColors.primaryMed)),
+                          Center(
+                            child: ScaleTransition(
+                              scale: _heartAnim,
+                              child: IgnorePointer(
+                                child: AnimatedBuilder(
+                                  animation: _heartCtrl,
+                                  builder: (_, _) => _heartCtrl.value > 0
+                                      ? Icon(Icons.favorite_rounded,
+                                          color: Colors.white.withValues(alpha: 1 - _heartCtrl.value), size: 90)
+                                      : const SizedBox.shrink(),
+                                ),
                               ),
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            c.timeAgo,
-                            style: GoogleFonts.dmSans(
-                              fontSize: 10,
-                              color: AppColors.textHint,
-                            ),
-                          ),
-                        ],
+                        ]),
                       ),
                     ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => ProfileScreen(userId: post.userId))),
+                        child: Row(children: [
+                          _AvatarSmall(base64: post.userAvatarBase64, name: post.username),
+                          const SizedBox(width: 10),
+                          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(post.username,
+                                style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.textPrimary)),
+                            Text(_timeAgo(post.createdAt),
+                                style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint)),
+                          ]),
+                        ]),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      child: Row(children: [
+                        IconButton(
+                          onPressed: () => _handleLike(post, currentUid),
+                          icon: Icon(
+                            isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                            color: isLiked ? const Color(0xFFEF5350) : AppColors.textPrimary, size: 26),
+                        ),
+                        IconButton(
+                          onPressed: () => FocusScope.of(context).requestFocus(FocusNode()),
+                          icon: const Icon(Icons.chat_bubble_outline_rounded, size: 26, color: AppColors.textPrimary),
+                        ),
+                      ]),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text('${post.likes} me gusta',
+                            style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textPrimary)),
+                        if (post.description.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          RichText(text: TextSpan(children: [
+                            TextSpan(text: '${post.username}  ',
+                                style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textPrimary)),
+                            TextSpan(text: post.description,
+                                style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.textSec, height: 1.45)),
+                          ])),
+                        ],
+                        if (post.tags.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Wrap(spacing: 6, children: post.tags.map((t) => Text('#$t',
+                              style: GoogleFonts.dmSans(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600))).toList()),
+                        ],
+                      ]),
+                    ),
+                    const Divider(height: 1),
+                    StreamBuilder<List<CommentModel>>(
+                      stream: PostsService.instance.streamComments(post.id),
+                      builder: (context, cSnap) {
+                        final comments = cSnap.data ?? [];
+                        if (comments.isEmpty) {
+                          return Padding(
+                            padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
+                            child: Text('Sin comentarios. Sé el primero.',
+                                style: GoogleFonts.dmSans(fontSize: 12, color: AppColors.textHint)),
+                          );
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+                          child: Column(children: comments.map((c) => _CommentRow(comment: c)).toList()),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 8),
                   ],
                 ),
               ),
-            )
-            .toList(),
-      ),
-    );
-  }
-
-  // ── Comment input ──────────────────────────────────────────────────────────
-  Widget _buildCommentInput() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-      decoration: const BoxDecoration(
-        color: AppColors.bgCard,
-        border: Border(top: BorderSide(color: AppColors.border)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [AppColors.primary, AppColors.primaryLight],
-              ),
             ),
-            child: Center(
-              child: Text(
-                'S',
-                style: GoogleFonts.dmSans(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 13,
+            SafeArea(
+              top: false,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+                decoration: const BoxDecoration(
+                  color: AppColors.bgCard,
+                  border: Border(top: BorderSide(color: AppColors.border)),
                 ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: TextField(
-              controller: _commentCtrl,
-              style: GoogleFonts.dmSans(fontSize: 13),
-              textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(
-                hintText: 'Añade un comentario...',
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
-                isDense: true,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  borderSide: const BorderSide(
-                    color: AppColors.primary,
-                    width: 1.5,
+                child: Row(children: [
+                  _AvatarSmall(base64: avatarBase64, name: username),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      controller: _commentCtrl,
+                      style: GoogleFonts.dmSans(fontSize: 13),
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: InputDecoration(
+                        hintText: 'Añade un comentario...',
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        isDense: true,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20),
+                            borderSide: const BorderSide(color: AppColors.border)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20),
+                            borderSide: const BorderSide(color: AppColors.border)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20),
+                            borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+                      ),
+                      onSubmitted: (_) => _sendComment(post, currentUid, username, avatarBase64),
+                    ),
                   ),
-                ),
-              ),
-              onSubmitted: (_) => _sendComment(),
-            ),
-          ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: _sendComment,
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: const BoxDecoration(
-                color: AppColors.primary,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.send_rounded,
-                color: Colors.white,
-                size: 16,
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => _sendComment(post, currentUid, username, avatarBase64),
+                    child: Container(
+                      width: 36, height: 36,
+                      decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                      child: _sendingComment
+                          ? const Padding(padding: EdgeInsets.all(8),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Icon(Icons.send_rounded, color: Colors.white, size: 16),
+                    ),
+                  ),
+                ]),
               ),
             ),
-          ),
-        ],
-      ),
+          ]),
+        );
+      },
     );
   }
 
-  // ── Options sheet ──────────────────────────────────────────────────────────
-  void _showOptions(UserPost post) {
+  void _showOptions(BuildContext context, PostModel post) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.bgCard,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 8),
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.border,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              ListTile(
-                leading: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.delete_outline_rounded,
-                    color: Colors.red,
-                    size: 18,
-                  ),
-                ),
-                title: Text(
-                  'Eliminar publicación',
-                  style: GoogleFonts.dmSans(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.red,
-                  ),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _confirmDelete(post);
-                },
-              ),
-              const SizedBox(height: 8),
-            ],
+        decoration: const BoxDecoration(color: AppColors.bgCard,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        child: SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const SizedBox(height: 8),
+          Center(child: Container(width: 40, height: 4,
+              decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)))),
+          const SizedBox(height: 6),
+          ListTile(
+            leading: Container(width: 36, height: 36,
+                decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 18)),
+            title: Text('Eliminar publicación',
+                style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, color: Colors.red)),
+            onTap: () {
+              Navigator.pop(context);
+              _confirmDelete(context, post);
+            },
           ),
-        ),
+          const SizedBox(height: 8),
+        ])),
       ),
     );
   }
+
+  void _confirmDelete(BuildContext context, PostModel post) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Eliminar publicación', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
+        content: Text('¿Eliminar "${post.title}"? Esta acción no se puede deshacer.',
+            style: GoogleFonts.dmSans(color: AppColors.textSec)),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(),
+              child: Text('Cancelar', style: GoogleFonts.dmSans(color: AppColors.textSec))),
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              PostsService.instance.deletePost(post.id);
+              Navigator.of(context).pop();
+            },
+            child: Text('Eliminar', style: GoogleFonts.dmSans(color: Colors.red, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CommentRow extends StatelessWidget {
+  final CommentModel comment;
+  const _CommentRow({required this.comment});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _AvatarSmall(base64: comment.avatarBase64, name: comment.username),
+      const SizedBox(width: 10),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        RichText(text: TextSpan(children: [
+          TextSpan(text: '${comment.username}  ',
+              style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textPrimary)),
+          TextSpan(text: comment.text,
+              style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.textSec, height: 1.4)),
+        ])),
+        const SizedBox(height: 2),
+        Text(_timeAgo(comment.createdAt),
+            style: GoogleFonts.dmSans(fontSize: 10, color: AppColors.textHint)),
+      ])),
+    ]),
+  );
+}
+
+class _AvatarSmall extends StatelessWidget {
+  final String base64;
+  final String name;
+  const _AvatarSmall({required this.base64, required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipOval(
+      child: SizedBox(
+        width: 34, height: 34,
+        child: base64.isNotEmpty
+            ? ImageUtils.imageFromBase64(base64, placeholder: _fallback())
+            : _fallback(),
+      ),
+    );
+  }
+
+  Widget _fallback() => Container(
+    width: 34, height: 34,
+    decoration: const BoxDecoration(shape: BoxShape.circle,
+        gradient: LinearGradient(colors: [AppColors.primary, AppColors.primaryLight])),
+    child: Center(child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?',
+        style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13))),
+  );
 }

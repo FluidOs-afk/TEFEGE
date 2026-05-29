@@ -1,1643 +1,508 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../main.dart' show AppColors;
-import '../services/profile_service.dart';
-import '../services/users_service.dart';
-import 'profile_screen.dart';
+import '../models/forum_thread.dart';
+import '../models/forum_reply.dart';
+import '../providers/auth_provider.dart';
+import '../services/forum_service.dart';
+import '../utils/image_utils.dart';
 
-const _currentUser = 'Tu';
+const _kCategories = ['Todos','Tendencias','Sostenibilidad','Compras','Estilo','OOTD'];
+
+class _CatMeta {
+  final IconData icon;
+  final Color color;
+  const _CatMeta(this.icon, this.color);
+}
+
+const _catMeta = {
+  'Tendencias': _CatMeta(Icons.trending_up_rounded, Color(0xFFD84315)),
+  'Sostenibilidad': _CatMeta(Icons.eco_outlined, Color(0xFF2E7D32)),
+  'Compras': _CatMeta(Icons.shopping_bag_outlined, Color(0xFF6A1B9A)),
+  'Estilo': _CatMeta(Icons.style_outlined, AppColors.primary),
+  'OOTD': _CatMeta(Icons.photo_camera_outlined, Color(0xFF00838F)),
+  'Todos': _CatMeta(Icons.apps_rounded, AppColors.primary),
+};
 
 class ForumScreen extends StatefulWidget {
   const ForumScreen({super.key});
-
   @override
   State<ForumScreen> createState() => _ForumScreenState();
 }
 
-class _ForumScreenState extends State<ForumScreen>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
-  final _searchCtrl = TextEditingController();
-  String _query = '';
-  String _sort = 'Recientes';
-
-  final List<_ForumCat> _cats = const [
-    _ForumCat('Tendencias', Icons.trending_up_rounded, Color(0xFFD84315)),
-    _ForumCat('Estilo personal', Icons.style_outlined, AppColors.primary),
-    _ForumCat('Sostenibilidad', Icons.eco_outlined, Color(0xFF2E7D32)),
-    _ForumCat('Compras', Icons.shopping_bag_outlined, Color(0xFF6A1B9A)),
-    _ForumCat('DIY & Custom', Icons.palette_outlined, Color(0xFFE65100)),
-    _ForumCat('Ayuda', Icons.help_outline_rounded, Color(0xFF00838F)),
-  ];
-
-  late final List<_Thread> _threads = [
-    _Thread(
-      id: 't1',
-      title: 'Como combinar colores tierra esta temporada',
-      body:
-          'Estoy probando camel, terracota y oliva para looks de diario. Que prendas usais para que no se vea demasiado plano?',
-      cat: _cats[1],
-      author: 'sofia.styles',
-      createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-      views: 1230,
-      pinned: true,
-      tags: ['Colores', 'Otono'],
-      replies: [
-        _Reply(
-          id: 'r1',
-          user: 'marta.fashion',
-          text:
-              'Camel con blanco roto y un cinturon marron oscuro siempre funciona.',
-          createdAt: DateTime.now().subtract(
-            const Duration(hours: 1, minutes: 45),
-          ),
-          likes: 8,
-        ),
-        _Reply(
-          id: 'r2',
-          user: 'lucia.v',
-          text:
-              'Terracota con mostaza queda muy bien si metes una base neutra.',
-          createdAt: DateTime.now().subtract(
-            const Duration(hours: 1, minutes: 30),
-          ),
-          likes: 15,
-        ),
-      ],
-    ),
-    _Thread(
-      id: 't2',
-      title: 'Los tonos pastel ya son tendencia: guia rapida',
-      body:
-          'He visto mucho azul bebe, verde menta y rosa empolvado. Dejo ideas para combinarlos sin caer en look infantil.',
-      cat: _cats[0],
-      author: 'marta.fashion',
-      createdAt: DateTime.now().subtract(const Duration(hours: 5)),
-      views: 4560,
-      tags: ['Pastel', 'Primavera'],
-      replies: [],
-    ),
-    _Thread(
-      id: 't3',
-      title: 'Haul Zara: lo que vale y lo que no',
-      body:
-          'Comparto prendas que he probado esta semana, con tallaje, tejido y alternativas mas sostenibles.',
-      cat: _cats[3],
-      author: 'lucia.vintage',
-      createdAt: DateTime.now().subtract(const Duration(days: 1)),
-      views: 2890,
-      tags: ['Zara', 'Haul'],
-      replies: [],
-    ),
-    _Thread(
-      id: 't4',
-      title: 'Thrift shopping en Madrid: spots favoritos',
-      body:
-          'Listado de tiendas de segunda mano con buena seleccion de denim, abrigos y accesorios.',
-      cat: _cats[2],
-      author: 'andrea.glam',
-      createdAt: DateTime.now().subtract(const Duration(days: 1, hours: 3)),
-      views: 980,
-      tags: ['Thrift', 'Madrid'],
-      replies: [],
-    ),
-    _Thread(
-      id: 't5',
-      title: 'Tutorial: personaliza tus vaqueros con bordados',
-      body:
-          'Ideas sencillas para dar una segunda vida a vaqueros basicos sin comprar materiales caros.',
-      cat: _cats[4],
-      author: 'carmen.b',
-      createdAt: DateTime.now().subtract(const Duration(days: 2)),
-      views: 760,
-      tags: ['DIY', 'Tutorial'],
-      replies: [],
-    ),
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    _searchCtrl.addListener(() => setState(() => _query = _searchCtrl.text));
-  }
-
-  @override
-  void dispose() {
-    _searchCtrl.dispose();
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  List<_Thread> get _visibleThreads {
-    final text = _query.trim().toLowerCase();
-    final filtered = _threads.where((thread) {
-      if (thread.deleted) return false;
-      if (text.isEmpty) return true;
-      return thread.title.toLowerCase().contains(text) ||
-          thread.body.toLowerCase().contains(text) ||
-          thread.cat.name.toLowerCase().contains(text) ||
-          thread.tags.any((tag) => tag.toLowerCase().contains(text));
-    }).toList();
-
-    switch (_sort) {
-      case 'Populares':
-        filtered.sort((a, b) => b.score.compareTo(a.score));
-        break;
-      case 'Respondidos':
-        filtered.sort((a, b) => b.replies.length.compareTo(a.replies.length));
-        break;
-      default:
-        filtered.sort((a, b) {
-          if (a.pinned != b.pinned) return a.pinned ? -1 : 1;
-          return b.createdAt.compareTo(a.createdAt);
-        });
-    }
-    return filtered;
-  }
-
-  List<_Thread> _threadsForCat(_ForumCat cat) =>
-      _visibleThreads.where((thread) => thread.cat.name == cat.name).toList();
-
-  List<_Thread> get _myThreads =>
-      _threads
-          .where((thread) => !thread.deleted && thread.author == _currentUser)
-          .toList()
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-  void _upsertThread(_Thread thread, {_Thread? editing}) {
-    setState(() {
-      if (editing == null) {
-        _threads.insert(0, thread);
-      } else {
-        final index = _threads.indexWhere((item) => item.id == editing.id);
-        if (index != -1) {
-          editing
-            ..title = thread.title
-            ..body = thread.body
-            ..cat = thread.cat
-            ..tags = thread.tags
-            ..editedAt = thread.editedAt;
-        }
-      }
-    });
-  }
-
-  void _deleteThread(_Thread thread) {
-    setState(() => thread.deleted = true);
-    Navigator.maybePop(context);
-    _toast('Hilo eliminado');
-  }
-
-  void _toggleSaved(_Thread thread) {
-    setState(() => thread.saved = !thread.saved);
-    _toast(thread.saved ? 'Hilo guardado' : 'Hilo quitado de guardados');
-  }
-
-  void _toggleLocked(_Thread thread) {
-    setState(() => thread.locked = !thread.locked);
-    _toast(thread.locked ? 'Hilo cerrado' : 'Hilo reabierto');
-  }
-
-  void _toggleSolved(_Thread thread) {
-    setState(() => thread.solved = !thread.solved);
-    _toast(thread.solved ? 'Marcado como resuelto' : 'Marcado como pendiente');
-  }
-
-  void _toast(String message) {
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(content: Text(message)));
-  }
-
-  void _openProfileForName(String name) {
-    if (name == _currentUser) {
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => const ProfileScreen()));
-      return;
-    }
-
-    final aliases = {
-      'lucia.v': 'lucia.vintage',
-      'sofia.s': 'sofia.styles',
-      'marta.f': 'marta.fashion',
-      'andrea.g': 'andrea.glam',
-    };
-    final username = aliases[name] ?? name;
-    final user = UsersService.instance.getUserByUsername(username);
-    if (user == null || user.userId == ProfileService.instance.profile.userId) {
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => const ProfileScreen()));
-      return;
-    }
-
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => ProfileScreen(userId: user.userId)));
-  }
-
-  Future<void> _openComposer({_ForumCat? cat, _Thread? editing}) async {
-    final result = await showModalBottomSheet<_Thread>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _ThreadComposer(cats: _cats, cat: cat, editing: editing),
-    );
-    if (result == null) return;
-    _upsertThread(result, editing: editing);
-    _toast(editing == null ? 'Hilo publicado' : 'Cambios guardados');
-  }
-
-  Future<void> _openThread(_Thread thread) async {
-    setState(() => thread.views++);
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => _ThreadScreen(
-          thread: thread,
-          onChanged: () => setState(() {}),
-          onEdit: () => _openComposer(editing: thread),
-          onDelete: () => _confirmDelete(thread),
-          onSave: () => _toggleSaved(thread),
-          onLock: () => _toggleLocked(thread),
-          onSolve: () => _toggleSolved(thread),
-          onAuthorTap: _openProfileForName,
-        ),
-      ),
-    );
-    setState(() {});
-  }
-
-  Future<void> _confirmDelete(_Thread thread) async {
-    final confirmed = await _confirm(
-      title: 'Eliminar hilo',
-      body:
-          'Se ocultara el hilo y sus respuestas de la comunidad. Esta accion no se puede deshacer en esta demo.',
-      action: 'Eliminar',
-    );
-    if (confirmed) _deleteThread(thread);
-  }
-
-  Future<bool> _confirm({
-    required String title,
-    required String body,
-    required String action,
-  }) async {
-    return await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text(title),
-            content: Text(body),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancelar'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: Text(action),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-  }
+class _ForumScreenState extends State<ForumScreen> {
+  String _selectedCat = 'Todos';
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final currentUid = auth.currentUser?.uid ?? '';
+    final currentUsername = auth.currentUser?.username ?? '';
+    final currentAvatarBase64 = auth.currentUser?.avatarBase64 ?? '';
+
     return Scaffold(
       backgroundColor: AppColors.bgPage,
       appBar: AppBar(
-        title: Text(
-          'Foro',
-          style: GoogleFonts.dmSans(
-            fontWeight: FontWeight.w700,
-            fontSize: 17,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Categorias'),
-            Tab(text: 'Hilos'),
-            Tab(text: 'Mis hilos'),
-          ],
-        ),
-      ),
-      body: Column(
-        children: [
-          _ForumSearchBar(
-            controller: _searchCtrl,
-            sort: _sort,
-            onSortChanged: (value) => setState(() => _sort = value),
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _CategoriesTab(
-                  cats: _cats,
-                  countFor: (cat) => _threadsForCat(cat).length,
-                  onTap: (cat) => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => _CategoryScreen(
-                        cat: cat,
-                        threads: _threadsForCat(cat),
-                        onOpen: _openThread,
-                        onNew: () => _openComposer(cat: cat),
-                        onAuthorTap: _openProfileForName,
-                      ),
-                    ),
-                  ),
-                ),
-                _ThreadList(
-                  threads: _visibleThreads,
-                  emptyText: 'No hay hilos con esa busqueda',
-                  onTap: _openThread,
-                  onAuthorTap: _openProfileForName,
-                ),
-                _ThreadList(
-                  threads: _myThreads,
-                  emptyText: 'Todavia no has publicado ningun hilo',
-                  onTap: _openThread,
-                  onAuthorTap: _openProfileForName,
-                ),
-              ],
-            ),
-          ),
-        ],
+        title: Text('Foro', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 17, color: AppColors.textPrimary)),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openComposer(),
+        onPressed: () => _openComposer(context,
+            currentUid: currentUid, currentUsername: currentUsername, currentAvatarBase64: currentAvatarBase64),
         icon: const Icon(Icons.edit_outlined),
-        label: Text(
-          'Nuevo hilo',
-          style: GoogleFonts.dmSans(fontWeight: FontWeight.w700),
-        ),
+        label: Text('Nuevo hilo', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
       ),
-    );
-  }
-}
-
-class _ForumCat {
-  final String name;
-  final IconData icon;
-  final Color color;
-
-  const _ForumCat(this.name, this.icon, this.color);
-}
-
-class _Thread {
-  final String id;
-  String title;
-  String body;
-  _ForumCat cat;
-  final String author;
-  final DateTime createdAt;
-  DateTime? editedAt;
-  List<String> tags;
-  final List<_Reply> replies;
-  int views;
-  bool pinned;
-  bool saved;
-  bool solved;
-  bool locked;
-  bool deleted;
-  int reports;
-
-  _Thread({
-    required this.id,
-    required this.title,
-    required this.body,
-    required this.cat,
-    required this.author,
-    required this.createdAt,
-    this.editedAt,
-    required this.tags,
-    required this.replies,
-    this.views = 0,
-    this.pinned = false,
-    this.saved = false,
-    this.solved = false,
-    this.locked = false,
-    this.deleted = false,
-    this.reports = 0,
-  });
-
-  bool get isMine => author == _currentUser;
-  int get score => views + (replies.length * 25) + (saved ? 80 : 0);
-
-  _Thread copyWith({
-    String? title,
-    String? body,
-    _ForumCat? cat,
-    List<String>? tags,
-    DateTime? editedAt,
-  }) {
-    return _Thread(
-      id: id,
-      title: title ?? this.title,
-      body: body ?? this.body,
-      cat: cat ?? this.cat,
-      author: author,
-      createdAt: createdAt,
-      editedAt: editedAt ?? this.editedAt,
-      tags: tags ?? this.tags,
-      replies: replies,
-      views: views,
-      pinned: pinned,
-      saved: saved,
-      solved: solved,
-      locked: locked,
-      deleted: deleted,
-      reports: reports,
-    );
-  }
-}
-
-class _Reply {
-  final String id;
-  final String user;
-  String text;
-  final DateTime createdAt;
-  DateTime? editedAt;
-  int likes;
-  bool liked;
-  bool deleted;
-  int reports;
-
-  _Reply({
-    required this.id,
-    required this.user,
-    required this.text,
-    required this.createdAt,
-    this.editedAt,
-    this.likes = 0,
-    this.liked = false,
-    this.deleted = false,
-    this.reports = 0,
-  });
-
-  bool get isMine => user == _currentUser;
-}
-
-class _ForumSearchBar extends StatelessWidget {
-  final TextEditingController controller;
-  final String sort;
-  final ValueChanged<String> onSortChanged;
-
-  const _ForumSearchBar({
-    required this.controller,
-    required this.sort,
-    required this.onSortChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.bgCard,
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: controller,
-              decoration: const InputDecoration(
-                hintText: 'Buscar hilos, categorias o etiquetas',
-                prefixIcon: Icon(Icons.search_rounded),
-                isDense: true,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          PopupMenuButton<String>(
-            initialValue: sort,
-            tooltip: 'Ordenar',
-            onSelected: onSortChanged,
-            itemBuilder: (context) => const [
-              PopupMenuItem(value: 'Recientes', child: Text('Recientes')),
-              PopupMenuItem(value: 'Populares', child: Text('Populares')),
-              PopupMenuItem(value: 'Respondidos', child: Text('Respondidos')),
-            ],
-            child: Container(
-              height: 46,
-              width: 46,
-              decoration: BoxDecoration(
-                color: AppColors.bgPage,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: const Icon(Icons.tune_rounded, color: AppColors.primary),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CategoriesTab extends StatelessWidget {
-  final List<_ForumCat> cats;
-  final int Function(_ForumCat cat) countFor;
-  final ValueChanged<_ForumCat> onTap;
-
-  const _CategoriesTab({
-    required this.cats,
-    required this.countFor,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(14),
-      itemCount: cats.length,
-      itemBuilder: (_, i) {
-        final cat = cats[i];
-        return _ForumPanel(
-          onTap: () => onTap(cat),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: cat.color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(cat.icon, color: cat.color, size: 22),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      cat.name,
-                      style: GoogleFonts.dmSans(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    Text(
-                      '${countFor(cat)} hilos activos',
-                      style: GoogleFonts.dmSans(
+      body: Column(children: [
+        Container(
+          color: AppColors.bgCard, height: 52,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            itemCount: _kCategories.length,
+            itemBuilder: (_, i) {
+              final cat = _kCategories[i];
+              final meta = _catMeta[cat]!;
+              final sel = _selectedCat == cat;
+              return GestureDetector(
+                onTap: () => setState(() => _selectedCat = cat),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: sel ? meta.color : AppColors.bgPage,
+                    borderRadius: BorderRadius.circular(20),
+                    border: sel ? null : Border.all(color: AppColors.border),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(meta.icon, size: 13, color: sel ? Colors.white : AppColors.textHint),
+                    const SizedBox(width: 5),
+                    Text(cat, style: GoogleFonts.dmSans(
                         fontSize: 12,
-                        color: AppColors.textHint,
-                      ),
-                    ),
-                  ],
+                        color: sel ? Colors.white : AppColors.textSec,
+                        fontWeight: sel ? FontWeight.w700 : FontWeight.w500)),
+                  ]),
                 ),
-              ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.textHint,
-              ),
-            ],
+              );
+            },
           ),
-        );
-      },
+        ),
+        Expanded(
+          child: RefreshIndicator(
+            color: AppColors.primary,
+            onRefresh: () async => setState(() => _selectedCat = _selectedCat),
+            child: StreamBuilder<List<ForumThread>>(
+              stream: ForumService.instance.streamThreads(category: _selectedCat),
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+                }
+                final threads = snap.data ?? [];
+                if (threads.isEmpty) {
+                  return _EmptyForumState(text: _selectedCat == 'Todos'
+                      ? 'Aún no hay hilos. ¡Sé el primero!'
+                      : 'Aún no hay hilos en "$_selectedCat"');
+                }
+                return ListView.builder(
+                  padding: const EdgeInsets.all(14),
+                  itemCount: threads.length,
+                  itemBuilder: (_, i) => _ThreadCard(
+                    thread: threads[i],
+                    currentUid: currentUid,
+                    onTap: () => _openThread(context,
+                        thread: threads[i], currentUid: currentUid,
+                        currentUsername: currentUsername, currentAvatarBase64: currentAvatarBase64),
+                    onLike: () => ForumService.instance.toggleLike(threads[i].id, currentUid),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ]),
     );
   }
-}
 
-class _ThreadList extends StatelessWidget {
-  final List<_Thread> threads;
-  final String emptyText;
-  final ValueChanged<_Thread> onTap;
-  final ValueChanged<String> onAuthorTap;
+  void _openThread(BuildContext context, {
+    required ForumThread thread, required String currentUid,
+    required String currentUsername, required String currentAvatarBase64,
+  }) {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => _ThreadDetailScreen(
+        thread: thread, currentUid: currentUid,
+        currentUsername: currentUsername, currentAvatarBase64: currentAvatarBase64,
+      ),
+    ));
+  }
 
-  const _ThreadList({
-    required this.threads,
-    required this.emptyText,
-    required this.onTap,
-    required this.onAuthorTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (threads.isEmpty) {
-      return _EmptyForumState(text: emptyText);
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.all(14),
-      itemCount: threads.length,
-      itemBuilder: (_, i) => _ThreadCard(
-        thread: threads[i],
-        onTap: onTap,
-        onAuthorTap: onAuthorTap,
+  void _openComposer(BuildContext context, {
+    required String currentUid, required String currentUsername, required String currentAvatarBase64,
+    String? preselectedCat,
+  }) {
+    showModalBottomSheet(
+      context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
+      builder: (_) => _ThreadComposer(
+        currentUid: currentUid, currentUsername: currentUsername,
+        currentAvatarBase64: currentAvatarBase64,
+        preselectedCat: preselectedCat ?? _selectedCat,
       ),
     );
   }
 }
 
 class _ThreadCard extends StatelessWidget {
-  final _Thread thread;
-  final ValueChanged<_Thread> onTap;
-  final ValueChanged<String> onAuthorTap;
-
-  const _ThreadCard({
-    required this.thread,
-    required this.onTap,
-    required this.onAuthorTap,
-  });
+  final ForumThread thread;
+  final String currentUid;
+  final VoidCallback onTap;
+  final VoidCallback onLike;
+  const _ThreadCard({required this.thread, required this.currentUid, required this.onTap, required this.onLike});
 
   @override
   Widget build(BuildContext context) {
+    final meta = _catMeta[thread.category] ?? _catMeta['Todos']!;
+    final isLiked = thread.isLikedBy(currentUid);
     return _ForumPanel(
-      onTap: () => onTap(thread),
-      highlighted: thread.pinned,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _CategoryPill(cat: thread.cat),
-              if (thread.pinned) ...[
-                const SizedBox(width: 6),
-                const Icon(
-                  Icons.push_pin_rounded,
-                  size: 13,
-                  color: AppColors.primary,
-                ),
-              ],
-              if (thread.solved) ...[
-                const SizedBox(width: 6),
-                const Icon(
-                  Icons.check_circle_rounded,
-                  size: 14,
-                  color: Color(0xFF2E7D32),
-                ),
-              ],
-              const Spacer(),
-              if (thread.saved)
-                const Icon(
-                  Icons.bookmark_rounded,
-                  size: 14,
-                  color: AppColors.primary,
-                ),
-              const SizedBox(width: 6),
-              Text(
-                _relativeTime(thread.createdAt),
-                style: GoogleFonts.dmSans(
-                  fontSize: 11,
-                  color: AppColors.textHint,
-                ),
-              ),
-            ],
+      onTap: onTap,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          _CatPill(category: thread.category, meta: meta),
+          const Spacer(),
+          Text(_relativeTime(thread.createdAt),
+              style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint)),
+        ]),
+        const SizedBox(height: 9),
+        Text(thread.title, maxLines: 2, overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 15, color: AppColors.textPrimary, height: 1.25)),
+        const SizedBox(height: 6),
+        Text(thread.content, maxLines: 2, overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.dmSans(fontSize: 12, color: AppColors.textSec, height: 1.35)),
+        const SizedBox(height: 10),
+        Row(children: [
+          _AuthorRow(avatarBase64: thread.avatarBase64, username: thread.username),
+          const Spacer(),
+          GestureDetector(
+            onTap: onLike,
+            child: Row(children: [
+              Icon(isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  size: 16, color: isLiked ? AppColors.primary : AppColors.textHint),
+              const SizedBox(width: 3),
+              Text('${thread.likes}',
+                  style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint, fontWeight: FontWeight.w700)),
+            ]),
           ),
-          const SizedBox(height: 9),
-          Text(
-            thread.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.dmSans(
-              fontWeight: FontWeight.w800,
-              fontSize: 15,
-              color: AppColors.textPrimary,
-              height: 1.25,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            thread.body,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.dmSans(
-              fontSize: 12,
-              color: AppColors.textSec,
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(height: 9),
-          Wrap(
-            spacing: 5,
-            runSpacing: 5,
-            children: thread.tags.map((tag) => _TagPill(tag)).toList(),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () => onAuthorTap(thread.author),
-                child: _Avatar(name: thread.author, radius: 10),
-              ),
-              const SizedBox(width: 6),
-              GestureDetector(
-                onTap: () => onAuthorTap(thread.author),
-                child: Text(
-                  thread.author,
-                  style: GoogleFonts.dmSans(
-                    fontSize: 11,
-                    color: AppColors.textSec,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              if (thread.isMine) ...[
-                const SizedBox(width: 6),
-                Text(
-                  'Autor',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 10,
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-              const Spacer(),
-              _MiniStat(
-                icon: Icons.mode_comment_outlined,
-                value: thread.replies.length,
-              ),
-              const SizedBox(width: 10),
-              _MiniStat(icon: Icons.visibility_outlined, value: thread.views),
-            ],
-          ),
-        ],
-      ),
+          const SizedBox(width: 12),
+          const Icon(Icons.mode_comment_outlined, size: 14, color: AppColors.textHint),
+          const SizedBox(width: 3),
+          _ReplyCount(threadId: thread.id),
+        ]),
+      ]),
     );
   }
 }
 
-class _CategoryScreen extends StatelessWidget {
-  final _ForumCat cat;
-  final List<_Thread> threads;
-  final ValueChanged<_Thread> onOpen;
-  final VoidCallback onNew;
-  final ValueChanged<String> onAuthorTap;
-
-  const _CategoryScreen({
-    required this.cat,
-    required this.threads,
-    required this.onOpen,
-    required this.onNew,
-    required this.onAuthorTap,
-  });
-
+class _ReplyCount extends StatelessWidget {
+  final String threadId;
+  const _ReplyCount({required this.threadId});
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bgPage,
-      appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(cat.icon, color: cat.color, size: 18),
-            const SizedBox(width: 8),
-            Text(cat.name),
-          ],
-        ),
-      ),
-      body: _ThreadList(
-        threads: threads,
-        emptyText: 'Aun no hay hilos en esta categoria',
-        onTap: onOpen,
-        onAuthorTap: onAuthorTap,
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: onNew,
-        icon: const Icon(Icons.edit_outlined),
-        label: const Text('Publicar'),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => StreamBuilder<List<ForumReply>>(
+    stream: ForumService.instance.streamReplies(threadId),
+    builder: (_, snap) => Text('${snap.data?.length ?? 0}',
+        style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint, fontWeight: FontWeight.w700)),
+  );
 }
 
-class _ThreadScreen extends StatefulWidget {
-  final _Thread thread;
-  final VoidCallback onChanged;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-  final VoidCallback onSave;
-  final VoidCallback onLock;
-  final VoidCallback onSolve;
-  final ValueChanged<String> onAuthorTap;
-
-  const _ThreadScreen({
-    required this.thread,
-    required this.onChanged,
-    required this.onEdit,
-    required this.onDelete,
-    required this.onSave,
-    required this.onLock,
-    required this.onSolve,
-    required this.onAuthorTap,
-  });
-
+class _ThreadDetailScreen extends StatefulWidget {
+  final ForumThread thread;
+  final String currentUid, currentUsername, currentAvatarBase64;
+  const _ThreadDetailScreen({required this.thread, required this.currentUid,
+      required this.currentUsername, required this.currentAvatarBase64});
   @override
-  State<_ThreadScreen> createState() => _ThreadScreenState();
+  State<_ThreadDetailScreen> createState() => _ThreadDetailScreenState();
 }
 
-class _ThreadScreenState extends State<_ThreadScreen> {
+class _ThreadDetailScreenState extends State<_ThreadDetailScreen> {
   final _replyCtrl = TextEditingController();
-  final _scrollCtrl = ScrollController();
+  bool _sending = false;
 
   @override
-  void dispose() {
-    _replyCtrl.dispose();
-    _scrollCtrl.dispose();
-    super.dispose();
-  }
+  void dispose() { _replyCtrl.dispose(); super.dispose(); }
 
-  void _sendReply() {
+  Future<void> _sendReply() async {
     final text = _replyCtrl.text.trim();
-    final error = _validateBody(text);
-    if (error != null) {
-      _toast(error);
-      return;
-    }
-    setState(() {
-      widget.thread.replies.add(
-        _Reply(
-          id: 'r${DateTime.now().microsecondsSinceEpoch}',
-          user: _currentUser,
-          text: text,
-          createdAt: DateTime.now(),
-        ),
-      );
-      _replyCtrl.clear();
-    });
-    widget.onChanged();
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (_scrollCtrl.hasClients) {
-        _scrollCtrl.animateTo(
-          _scrollCtrl.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOut,
-        );
-      }
-    });
-  }
-
-  void _toggleLike(_Reply reply) {
-    setState(() {
-      reply.liked = !reply.liked;
-      reply.likes += reply.liked ? 1 : -1;
-    });
-    widget.onChanged();
-  }
-
-  Future<void> _editReply(_Reply reply) async {
-    final result = await showDialog<String>(
-      context: context,
-      builder: (_) => _ReplyEditor(initialText: reply.text),
+    if (text.isEmpty || _sending) return;
+    setState(() => _sending = true);
+    _replyCtrl.clear();
+    FocusScope.of(context).unfocus();
+    await ForumService.instance.addReply(
+      widget.thread.id,
+      ForumReply(id: '', userId: widget.currentUid, username: widget.currentUsername,
+          avatarBase64: widget.currentAvatarBase64, content: text, createdAt: DateTime.now()),
     );
-    if (result == null) return;
-    final error = _validateBody(result);
-    if (error != null) {
-      _toast(error);
-      return;
-    }
-    setState(() {
-      reply.text = result.trim();
-      reply.editedAt = DateTime.now();
-    });
-    widget.onChanged();
-    _toast('Respuesta editada');
+    if (mounted) setState(() => _sending = false);
   }
 
-  Future<void> _deleteReply(_Reply reply) async {
-    final confirmed = await _confirm(
-      title: 'Eliminar respuesta',
-      body: 'La respuesta dejara de verse en este hilo.',
-      action: 'Eliminar',
-    );
-    if (!confirmed) return;
-    setState(() => reply.deleted = true);
-    widget.onChanged();
-    _toast('Respuesta eliminada');
-  }
-
-  void _reportThread() {
-    setState(() => widget.thread.reports++);
-    widget.onChanged();
-    _toast('Gracias. Revisaremos este hilo segun las normas de la comunidad.');
-  }
-
-  void _reportReply(_Reply reply) {
-    setState(() => reply.reports++);
-    widget.onChanged();
-    _toast('Respuesta reportada para moderacion');
-  }
-
-  Future<void> _showThreadActions() async {
-    final action = await showModalBottomSheet<String>(
+  Future<void> _deleteThread() async {
+    final ok = await showDialog<bool>(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _ForumActionSheet(
-        title: 'Opciones del hilo',
-        subtitle: widget.thread.isMine
-            ? 'Gestiona tu publicacion'
-            : 'Acciones disponibles',
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Eliminar hilo', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
+        content: Text('¿Eliminar "${widget.thread.title}"? Esta acción no se puede deshacer.',
+            style: GoogleFonts.dmSans(color: AppColors.textSec)),
         actions: [
-          _ForumAction(
-            value: 'save',
-            icon: widget.thread.saved
-                ? Icons.bookmark_remove_outlined
-                : Icons.bookmark_add_outlined,
-            title: widget.thread.saved ? 'Quitar de guardados' : 'Guardar hilo',
-            color: AppColors.primary,
-          ),
-          if (widget.thread.isMine)
-            _ForumAction(
-              value: 'solve',
-              icon: widget.thread.solved
-                  ? Icons.radio_button_unchecked_rounded
-                  : Icons.check_circle_outline_rounded,
-              title: widget.thread.solved
-                  ? 'Marcar como pendiente'
-                  : 'Marcar como resuelto',
-              color: const Color(0xFF2E7D32),
-            ),
-          if (widget.thread.isMine)
-            _ForumAction(
-              value: 'lock',
-              icon: widget.thread.locked
-                  ? Icons.lock_open_rounded
-                  : Icons.lock_outline_rounded,
-              title: widget.thread.locked
-                  ? 'Reabrir respuestas'
-                  : 'Cerrar respuestas',
-              color: const Color(0xFF6A1B9A),
-            ),
-          if (widget.thread.isMine)
-            const _ForumAction(
-              value: 'edit',
-              icon: Icons.edit_outlined,
-              title: 'Editar hilo',
-              color: AppColors.textSec,
-            ),
-          if (!widget.thread.isMine)
-            const _ForumAction(
-              value: 'report',
-              icon: Icons.flag_outlined,
-              title: 'Reportar',
-              color: Color(0xFFD84315),
-            ),
-          if (widget.thread.isMine)
-            const _ForumAction(
-              value: 'delete',
-              icon: Icons.delete_outline_rounded,
-              title: 'Eliminar hilo',
-              color: Color(0xFFC62828),
-              destructive: true,
-            ),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text('Cancelar', style: GoogleFonts.dmSans(color: AppColors.textSec))),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text('Eliminar', style: GoogleFonts.dmSans(color: Colors.red, fontWeight: FontWeight.w700))),
         ],
       ),
     );
-    if (action == null) return;
-    switch (action) {
-      case 'save':
-        widget.onSave();
-        setState(() {});
-        break;
-      case 'solve':
-        widget.onSolve();
-        setState(() {});
-        break;
-      case 'lock':
-        widget.onLock();
-        setState(() {});
-        break;
-      case 'edit':
-        widget.onEdit();
-        break;
-      case 'delete':
-        widget.onDelete();
-        break;
-      case 'report':
-        _reportThread();
-        break;
+    if (ok == true && mounted) {
+      await ForumService.instance.deleteThread(widget.thread.id);
+      if (mounted) Navigator.of(context).pop();
     }
-  }
-
-  Future<void> _showReplyActions(_Reply reply) async {
-    final action = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _ForumActionSheet(
-        title: reply.isMine ? 'Opciones de respuesta' : 'Moderacion',
-        subtitle: reply.isMine
-            ? 'Puedes editar o retirar tu respuesta'
-            : 'Ayuda a mantener el foro cuidado',
-        actions: [
-          if (reply.isMine)
-            const _ForumAction(
-              value: 'edit',
-              icon: Icons.edit_outlined,
-              title: 'Editar respuesta',
-              color: AppColors.textSec,
-            ),
-          if (!reply.isMine)
-            const _ForumAction(
-              value: 'report',
-              icon: Icons.flag_outlined,
-              title: 'Reportar respuesta',
-              color: Color(0xFFD84315),
-            ),
-          if (reply.isMine)
-            const _ForumAction(
-              value: 'delete',
-              icon: Icons.delete_outline_rounded,
-              title: 'Eliminar respuesta',
-              color: Color(0xFFC62828),
-              destructive: true,
-            ),
-        ],
-      ),
-    );
-    if (action == 'edit') _editReply(reply);
-    if (action == 'delete') _deleteReply(reply);
-    if (action == 'report') _reportReply(reply);
-  }
-
-  Future<bool> _confirm({
-    required String title,
-    required String body,
-    required String action,
-  }) async {
-    return await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text(title),
-            content: Text(body),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancelar'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: Text(action),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-  }
-
-  void _toast(String message) {
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
-    final replies = widget.thread.replies
-        .where((reply) => !reply.deleted)
-        .toList();
+    final thread = widget.thread;
+    final meta = _catMeta[thread.category] ?? _catMeta['Todos']!;
+    final isOwn = thread.userId == widget.currentUid;
+    final isLiked = thread.isLikedBy(widget.currentUid);
+
     return Scaffold(
       backgroundColor: AppColors.bgPage,
       appBar: AppBar(
-        title: Text(
-          widget.thread.title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
+        title: Text(thread.title, maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
         actions: [
-          IconButton(
-            tooltip: 'Opciones',
-            onPressed: _showThreadActions,
-            icon: const Icon(Icons.more_horiz_rounded),
-          ),
+          if (isOwn)
+            IconButton(icon: const Icon(Icons.delete_outline_rounded, color: Colors.red), onPressed: _deleteThread),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              controller: _scrollCtrl,
-              padding: const EdgeInsets.all(14),
-              children: [
-                _ThreadHeader(
-                  thread: widget.thread,
-                  onAuthorTap: widget.onAuthorTap,
-                ),
-                const SizedBox(height: 12),
-                if (replies.isEmpty)
-                  const _EmptyForumState(
-                    text: 'Se la primera persona en responder',
-                  )
-                else
-                  ...replies.map(
-                    (reply) => _ReplyBubble(
-                      reply: reply,
-                      onLike: () => _toggleLike(reply),
-                      onActions: () => _showReplyActions(reply),
-                      onAuthorTap: widget.onAuthorTap,
-                    ),
-                  ),
-              ],
-            ),
+      body: Column(children: [
+        Expanded(
+          child: StreamBuilder<List<ForumReply>>(
+            stream: ForumService.instance.streamReplies(thread.id),
+            builder: (context, snap) {
+              final replies = snap.data ?? [];
+              return ListView(
+                padding: const EdgeInsets.all(14),
+                children: [
+                  _ForumPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      _CatPill(category: thread.category, meta: meta),
+                      const Spacer(),
+                      Text(_relativeTime(thread.createdAt),
+                          style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint)),
+                    ]),
+                    const SizedBox(height: 12),
+                    Text(thread.title,
+                        style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 20, color: AppColors.textPrimary, height: 1.15)),
+                    const SizedBox(height: 10),
+                    Text(thread.content,
+                        style: GoogleFonts.dmSans(fontSize: 14, color: AppColors.textPrimary, height: 1.45)),
+                    const SizedBox(height: 12),
+                    Row(children: [
+                      _AuthorRow(avatarBase64: thread.avatarBase64, username: thread.username),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => ForumService.instance.toggleLike(thread.id, widget.currentUid),
+                        child: Row(children: [
+                          Icon(isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                              size: 18, color: isLiked ? AppColors.primary : AppColors.textHint),
+                          const SizedBox(width: 4),
+                          Text('${thread.likes}',
+                              style: GoogleFonts.dmSans(fontSize: 12, color: AppColors.textHint, fontWeight: FontWeight.w700)),
+                        ]),
+                      ),
+                    ]),
+                  ])),
+                  if (snap.connectionState == ConnectionState.waiting)
+                    const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 20),
+                        child: CircularProgressIndicator(color: AppColors.primary)))
+                  else if (replies.isEmpty)
+                    const _EmptyForumState(text: 'Sé el primero en responder')
+                  else
+                    ...replies.map((r) => _ReplyBubble(
+                          reply: r, currentUid: widget.currentUid,
+                          onDelete: r.userId == widget.currentUid
+                              ? () => ForumService.instance.deleteReply(thread.id, r.id)
+                              : null,
+                        )),
+                ],
+              );
+            },
           ),
-          _ReplyInput(
-            controller: _replyCtrl,
-            locked: widget.thread.locked,
-            onSend: _sendReply,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ThreadHeader extends StatelessWidget {
-  final _Thread thread;
-  final ValueChanged<String> onAuthorTap;
-
-  const _ThreadHeader({
-    required this.thread,
-    required this.onAuthorTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return _ForumPanel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _CategoryPill(cat: thread.cat),
-              if (thread.solved) ...[
-                const SizedBox(width: 8),
-                const Icon(
-                  Icons.check_circle_rounded,
-                  size: 15,
-                  color: Color(0xFF2E7D32),
-                ),
-                const SizedBox(width: 3),
-                Text(
-                  'Resuelto',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 11,
-                    color: const Color(0xFF2E7D32),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-              const Spacer(),
-              Text(
-                _relativeTime(thread.createdAt),
-                style: GoogleFonts.dmSans(
-                  fontSize: 11,
-                  color: AppColors.textHint,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            thread.title,
-            style: GoogleFonts.dmSans(
-              fontWeight: FontWeight.w800,
-              fontSize: 20,
-              color: AppColors.textPrimary,
-              height: 1.15,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            thread.body,
-            style: GoogleFonts.dmSans(
-              fontSize: 14,
-              color: AppColors.textPrimary,
-              height: 1.45,
-            ),
-          ),
-          if (thread.editedAt != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              'Editado ${_relativeTime(thread.editedAt!)}',
-              style: GoogleFonts.dmSans(
-                fontSize: 11,
-                color: AppColors.textHint,
-              ),
-            ),
-          ],
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 5,
-            runSpacing: 5,
-            children: thread.tags.map((tag) => _TagPill(tag)).toList(),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () => onAuthorTap(thread.author),
-                child: _Avatar(name: thread.author, radius: 13),
-              ),
+        ),
+        Container(
+          padding: EdgeInsets.only(left: 12, right: 12, top: 10,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 12),
+          decoration: const BoxDecoration(color: AppColors.bgCard,
+              border: Border(top: BorderSide(color: AppColors.border))),
+          child: SafeArea(top: false,
+            child: Row(children: [
+              Expanded(child: TextField(
+                controller: _replyCtrl, maxLines: null,
+                textInputAction: TextInputAction.send,
+                onSubmitted: (_) => _sendReply(),
+                decoration: const InputDecoration(hintText: 'Escribe una respuesta...', isDense: true),
+              )),
               const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () => onAuthorTap(thread.author),
-                child: Text(
-                  thread.author,
-                  style: GoogleFonts.dmSans(
-                    fontSize: 12,
-                    color: AppColors.textSec,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+              IconButton.filled(
+                onPressed: _sending ? null : _sendReply,
+                style: IconButton.styleFrom(backgroundColor: AppColors.primary),
+                icon: _sending
+                    ? const SizedBox(width: 18, height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.send_rounded, color: Colors.white),
               ),
-              const Spacer(),
-              _MiniStat(
-                icon: Icons.mode_comment_outlined,
-                value: thread.replies.where((r) => !r.deleted).length,
-              ),
-              const SizedBox(width: 12),
-              _MiniStat(icon: Icons.visibility_outlined, value: thread.views),
-            ],
+            ]),
           ),
-        ],
-      ),
+        ),
+      ]),
     );
   }
 }
 
 class _ReplyBubble extends StatelessWidget {
-  final _Reply reply;
-  final VoidCallback onLike;
-  final VoidCallback onActions;
-  final ValueChanged<String> onAuthorTap;
-
-  const _ReplyBubble({
-    required this.reply,
-    required this.onLike,
-    required this.onActions,
-    required this.onAuthorTap,
-  });
+  final ForumReply reply;
+  final String currentUid;
+  final VoidCallback? onDelete;
+  const _ReplyBubble({required this.reply, required this.currentUid, this.onDelete});
 
   @override
-  Widget build(BuildContext context) {
-    return _ForumPanel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () => onAuthorTap(reply.user),
-                child: _Avatar(name: reply.user, radius: 13),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => onAuthorTap(reply.user),
-                  child: Text(
-                    reply.user,
-                    style: GoogleFonts.dmSans(
-                      fontSize: 12,
-                      color: AppColors.textSec,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-              Text(
-                _relativeTime(reply.createdAt),
-                style: GoogleFonts.dmSans(
-                  fontSize: 10,
-                  color: AppColors.textHint,
-                ),
-              ),
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                tooltip: 'Opciones',
-                onPressed: onActions,
-                icon: const Icon(
-                  Icons.more_horiz_rounded,
-                  size: 20,
-                  color: AppColors.textHint,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            reply.text,
-            style: GoogleFonts.dmSans(
-              fontSize: 13,
-              color: AppColors.textPrimary,
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              InkWell(
-                borderRadius: BorderRadius.circular(18),
-                onTap: onLike,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 4,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        reply.liked
-                            ? Icons.favorite_rounded
-                            : Icons.favorite_border_rounded,
-                        size: 16,
-                        color: reply.liked
-                            ? AppColors.primary
-                            : AppColors.textHint,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${reply.likes}',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 11,
-                          color: AppColors.textHint,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              if (reply.editedAt != null) ...[
-                const SizedBox(width: 8),
-                Text(
-                  'Editado',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 10,
-                    color: AppColors.textHint,
-                  ),
-                ),
-              ],
-            ],
-          ),
+  Widget build(BuildContext context) => _ForumPanel(
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        _AuthorRow(avatarBase64: reply.avatarBase64, username: reply.username),
+        const Spacer(),
+        Text(_relativeTime(reply.createdAt),
+            style: GoogleFonts.dmSans(fontSize: 10, color: AppColors.textHint)),
+        if (onDelete != null) ...[
+          const SizedBox(width: 4),
+          GestureDetector(onTap: onDelete,
+              child: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red)),
         ],
-      ),
-    );
-  }
-}
-
-class _ReplyInput extends StatelessWidget {
-  final TextEditingController controller;
-  final bool locked;
-  final VoidCallback onSend;
-
-  const _ReplyInput({
-    required this.controller,
-    required this.locked,
-    required this.onSend,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(
-        left: 12,
-        right: 12,
-        top: 10,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 12,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.bgCard,
-        border: Border(top: BorderSide(color: AppColors.border)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: controller,
-                enabled: !locked,
-                maxLines: null,
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => onSend(),
-                decoration: InputDecoration(
-                  hintText: locked
-                      ? 'Este hilo esta cerrado'
-                      : 'Escribe una respuesta respetuosa',
-                  isDense: true,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            IconButton.filled(
-              onPressed: locked ? null : onSend,
-              icon: const Icon(Icons.send_rounded),
-              tooltip: 'Enviar respuesta',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+      ]),
+      const SizedBox(height: 8),
+      Text(reply.content, style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.textPrimary, height: 1.4)),
+    ]),
+  );
 }
 
 class _ThreadComposer extends StatefulWidget {
-  final List<_ForumCat> cats;
-  final _ForumCat? cat;
-  final _Thread? editing;
-
-  const _ThreadComposer({required this.cats, this.cat, this.editing});
-
+  final String currentUid, currentUsername, currentAvatarBase64, preselectedCat;
+  const _ThreadComposer({required this.currentUid, required this.currentUsername,
+      required this.currentAvatarBase64, required this.preselectedCat});
   @override
   State<_ThreadComposer> createState() => _ThreadComposerState();
 }
 
 class _ThreadComposerState extends State<_ThreadComposer> {
-  late final TextEditingController _titleCtrl;
-  late final TextEditingController _bodyCtrl;
-  late final TextEditingController _tagsCtrl;
-  late _ForumCat _selectedCat;
+  late final TextEditingController _titleCtrl = TextEditingController();
+  late final TextEditingController _contentCtrl = TextEditingController();
+  late String _selectedCat;
+  bool _publishing = false;
 
   @override
   void initState() {
     super.initState();
-    final editing = widget.editing;
-    _selectedCat = widget.cat ?? editing?.cat ?? widget.cats.first;
-    _titleCtrl = TextEditingController(text: editing?.title ?? '');
-    _bodyCtrl = TextEditingController(text: editing?.body ?? '');
-    _tagsCtrl = TextEditingController(text: editing?.tags.join(', ') ?? '');
+    _selectedCat = widget.preselectedCat == 'Todos' ? 'Tendencias' : widget.preselectedCat;
   }
 
   @override
-  void dispose() {
-    _titleCtrl.dispose();
-    _bodyCtrl.dispose();
-    _tagsCtrl.dispose();
-    super.dispose();
-  }
+  void dispose() { _titleCtrl.dispose(); _contentCtrl.dispose(); super.dispose(); }
 
-  void _submit() {
+  Future<void> _submit() async {
     final title = _titleCtrl.text.trim();
-    final body = _bodyCtrl.text.trim();
-    final titleError = _validateTitle(title);
-    final bodyError = _validateBody(body);
-    if (titleError != null || bodyError != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(titleError ?? bodyError!)));
-      return;
+    final content = _contentCtrl.text.trim();
+    if (title.length < 5) { _snack('El título necesita al menos 5 caracteres'); return; }
+    if (content.length < 10) { _snack('El contenido necesita al menos 10 caracteres'); return; }
+    setState(() => _publishing = true);
+    try {
+      await ForumService.instance.createThread(ForumThread(
+        id: '', userId: widget.currentUid, username: widget.currentUsername,
+        avatarBase64: widget.currentAvatarBase64,
+        title: title, category: _selectedCat, content: content, createdAt: DateTime.now(),
+      ));
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Hilo publicado', style: GoogleFonts.dmSans())));
+      }
+    } catch (_) {
+      if (mounted) _snack('Error al publicar. Inténtalo de nuevo.');
+    } finally {
+      if (mounted) setState(() => _publishing = false);
     }
-
-    final tags = _tagsCtrl.text
-        .split(',')
-        .map((tag) => tag.trim())
-        .where((tag) => tag.isNotEmpty)
-        .take(5)
-        .toList();
-
-    final editing = widget.editing;
-    final thread = editing == null
-        ? _Thread(
-            id: 't${DateTime.now().microsecondsSinceEpoch}',
-            title: title,
-            body: body,
-            cat: _selectedCat,
-            author: _currentUser,
-            createdAt: DateTime.now(),
-            tags: tags.isEmpty ? [_selectedCat.name] : tags,
-            replies: [],
-          )
-        : editing.copyWith(
-            title: title,
-            body: body,
-            cat: _selectedCat,
-            tags: tags.isEmpty ? [_selectedCat.name] : tags,
-            editedAt: DateTime.now(),
-          );
-    Navigator.pop(context, thread);
   }
+
+  void _snack(String msg) => ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg, style: GoogleFonts.dmSans())));
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.bgCard,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      child: SafeArea(
-        top: false,
+      decoration: const BoxDecoration(color: AppColors.bgCard,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+      child: SafeArea(top: false,
         child: Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.border,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Center(child: Container(width: 36, height: 4,
+                  decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(4)))),
+              const SizedBox(height: 18),
+              Text('Nuevo hilo', style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+              const SizedBox(height: 14),
+              Text('Categoría', style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textSec)),
+              const SizedBox(height: 8),
+              SizedBox(height: 40,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _kCategories.where((c) => c != 'Todos').length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
+                  itemBuilder: (_, i) {
+                    final cats = _kCategories.where((c) => c != 'Todos').toList();
+                    final cat = cats[i];
+                    final meta = _catMeta[cat]!;
+                    final sel = _selectedCat == cat;
+                    return ChoiceChip(
+                      selected: sel,
+                      avatar: Icon(meta.icon, size: 15, color: sel ? Colors.white : meta.color),
+                      label: Text(cat),
+                      onSelected: (_) => setState(() => _selectedCat = cat),
+                      selectedColor: meta.color,
+                      labelStyle: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w700,
+                          color: sel ? Colors.white : meta.color),
+                    );
+                  },
                 ),
-                const SizedBox(height: 18),
-                Text(
-                  widget.editing == null ? 'Nuevo hilo' : 'Editar hilo',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                  ),
+              ),
+              const SizedBox(height: 14),
+              TextField(controller: _titleCtrl, maxLength: 90,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(labelText: 'Título', hintText: 'Resume la conversación en una frase', counterText: '')),
+              const SizedBox(height: 12),
+              TextField(controller: _contentCtrl, minLines: 4, maxLines: 8, maxLength: 800,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(labelText: 'Contenido', hintText: 'Explica el contexto, pregunta o idea...', alignLabelWithHint: true)),
+              const SizedBox(height: 12),
+              _GuidelinesBox(),
+              const SizedBox(height: 16),
+              SizedBox(width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _publishing ? null : _submit,
+                  icon: _publishing
+                      ? const SizedBox(width: 18, height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.check_rounded),
+                  label: const Text('Publicar hilo'),
                 ),
-                const SizedBox(height: 14),
-                Text(
-                  'Categoria',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textSec,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 40,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: widget.cats.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (_, i) {
-                      final cat = widget.cats[i];
-                      final selected = cat.name == _selectedCat.name;
-                      return ChoiceChip(
-                        selected: selected,
-                        avatar: Icon(
-                          cat.icon,
-                          size: 15,
-                          color: selected ? Colors.white : cat.color,
-                        ),
-                        label: Text(cat.name),
-                        onSelected: (_) => setState(() => _selectedCat = cat),
-                        selectedColor: cat.color,
-                        labelStyle: GoogleFonts.dmSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: selected ? Colors.white : cat.color,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: _titleCtrl,
-                  maxLength: 90,
-                  decoration: const InputDecoration(
-                    labelText: 'Titulo',
-                    hintText: 'Resume la conversacion en una frase',
-                    counterText: '',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _bodyCtrl,
-                  minLines: 5,
-                  maxLines: 8,
-                  maxLength: 800,
-                  decoration: const InputDecoration(
-                    labelText: 'Mensaje',
-                    hintText: 'Explica el contexto, pregunta o idea de moda',
-                    alignLabelWithHint: true,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _tagsCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Etiquetas',
-                    hintText: 'Capsula, denim, Madrid',
-                    prefixIcon: Icon(Icons.tag_rounded),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                _GuidelinesBox(),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _submit,
-                    icon: const Icon(Icons.check_rounded),
-                    label: Text(
-                      widget.editing == null
-                          ? 'Publicar hilo'
-                          : 'Guardar cambios',
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ]),
           ),
         ),
       ),
@@ -1645,459 +510,85 @@ class _ThreadComposerState extends State<_ThreadComposer> {
   }
 }
 
-class _ReplyEditor extends StatefulWidget {
-  final String initialText;
-
-  const _ReplyEditor({required this.initialText});
+// ─── Widgets auxiliares ───────────────────────────────────────────────────────
+class _AuthorRow extends StatelessWidget {
+  final String avatarBase64, username;
+  const _AuthorRow({required this.avatarBase64, required this.username});
 
   @override
-  State<_ReplyEditor> createState() => _ReplyEditorState();
+  Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
+    ClipOval(child: SizedBox(width: 22, height: 22,
+        child: avatarBase64.isNotEmpty
+            ? ImageUtils.imageFromBase64(avatarBase64, placeholder: _fallback())
+            : _fallback())),
+    const SizedBox(width: 6),
+    Text('@$username', style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textSec, fontWeight: FontWeight.w700)),
+  ]);
+
+  Widget _fallback() => Container(
+    width: 22, height: 22,
+    decoration: const BoxDecoration(shape: BoxShape.circle,
+        gradient: LinearGradient(colors: [AppColors.primary, AppColors.primaryLight])),
+    child: Center(child: Text(username.isNotEmpty ? username[0].toUpperCase() : '?',
+        style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 9))),
+  );
 }
 
-class _ReplyEditorState extends State<_ReplyEditor> {
-  late final TextEditingController _ctrl;
-
+class _CatPill extends StatelessWidget {
+  final String category;
+  final _CatMeta meta;
+  const _CatPill({required this.category, required this.meta});
   @override
-  void initState() {
-    super.initState();
-    _ctrl = TextEditingController(text: widget.initialText);
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Editar respuesta'),
-      content: TextField(
-        controller: _ctrl,
-        autofocus: true,
-        minLines: 3,
-        maxLines: 6,
-        decoration: const InputDecoration(alignLabelWithHint: true),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(context, _ctrl.text),
-          child: const Text('Guardar'),
-        ),
-      ],
-    );
-  }
-}
-
-class _ForumAction {
-  final String value;
-  final IconData icon;
-  final String title;
-  final Color color;
-  final bool destructive;
-
-  const _ForumAction({
-    required this.value,
-    required this.icon,
-    required this.title,
-    required this.color,
-    this.destructive = false,
-  });
-}
-
-class _ForumActionSheet extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final List<_ForumAction> actions;
-
-  const _ForumActionSheet({
-    required this.title,
-    required this.subtitle,
-    required this.actions,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final maxHeight = MediaQuery.of(context).size.height * 0.82;
-    return SafeArea(
-      top: false,
-      child: Container(
-        margin: const EdgeInsets.all(10),
-        padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
-        constraints: BoxConstraints(maxHeight: maxHeight),
-        decoration: BoxDecoration(
-          color: AppColors.bgCard,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppColors.border),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.12),
-              blurRadius: 28,
-              offset: const Offset(0, 12),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.dmSans(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.dmSans(
-                      fontSize: 12,
-                      color: AppColors.textHint,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-            Flexible(
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: actions
-                      .map((action) => _ForumActionTile(action: action))
-                      .toList(),
-                ),
-              ),
-            ),
-            const SizedBox(height: 4),
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(
-                  'Cancelar',
-                  style: GoogleFonts.dmSans(
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textSec,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ForumActionTile extends StatelessWidget {
-  final _ForumAction action;
-
-  const _ForumActionTile({required this.action});
-
-  @override
-  Widget build(BuildContext context) {
-    final bgColor = action.destructive
-        ? action.color.withValues(alpha: 0.08)
-        : action.color.withValues(alpha: 0.1);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 7),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: () => Navigator.pop(context, action.value),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-          decoration: BoxDecoration(
-            color: action.destructive
-                ? const Color(0xFFFFF6F6)
-                : AppColors.bgPage,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: action.destructive
-                  ? action.color.withValues(alpha: 0.18)
-                  : AppColors.border,
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(action.icon, color: action.color, size: 19),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  action.title,
-                  style: GoogleFonts.dmSans(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: action.destructive
-                        ? action.color
-                        : AppColors.textPrimary,
-                  ),
-                ),
-              ),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 20,
-                color: action.destructive
-                    ? action.color.withValues(alpha: 0.7)
-                    : AppColors.textHint,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _GuidelinesBox extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.accentBg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(
-            Icons.verified_user_outlined,
-            size: 18,
-            color: AppColors.primary,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'Publica contenido propio, evita datos personales y manten un tono respetuoso. Puedes editar o borrar lo que publiques.',
-              style: GoogleFonts.dmSans(
-                fontSize: 12,
-                color: AppColors.textSec,
-                height: 1.35,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(color: meta.color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+    child: Text(category, style: GoogleFonts.dmSans(fontSize: 10, color: meta.color, fontWeight: FontWeight.w800)),
+  );
 }
 
 class _ForumPanel extends StatelessWidget {
   final Widget child;
   final VoidCallback? onTap;
-  final bool highlighted;
-
-  const _ForumPanel({
-    required this.child,
-    this.onTap,
-    this.highlighted = false,
-  });
-
+  const _ForumPanel({required this.child, this.onTap});
   @override
   Widget build(BuildContext context) {
-    final panel = Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.bgCard,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: highlighted
-              ? AppColors.primary.withOpacity(0.35)
-              : AppColors.border,
-          width: highlighted ? 1.4 : 1,
-        ),
-      ),
-      child: child,
-    );
+    final panel = Container(margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(color: AppColors.bgCard, borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border)), child: child);
     if (onTap == null) return panel;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: panel,
-    );
-  }
-}
-
-class _CategoryPill extends StatelessWidget {
-  final _ForumCat cat;
-
-  const _CategoryPill({required this.cat});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: cat.color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        cat.name,
-        style: GoogleFonts.dmSans(
-          fontSize: 10,
-          color: cat.color,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-}
-
-class _TagPill extends StatelessWidget {
-  final String tag;
-
-  const _TagPill(this.tag);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: AppColors.accentBg,
-        borderRadius: BorderRadius.circular(7),
-      ),
-      child: Text(
-        '#$tag',
-        style: GoogleFonts.dmSans(
-          fontSize: 10,
-          color: AppColors.primary,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
-class _Avatar extends StatelessWidget {
-  final String name;
-  final double radius;
-
-  const _Avatar({required this.name, required this.radius});
-
-  @override
-  Widget build(BuildContext context) {
-    return CircleAvatar(
-      radius: radius,
-      backgroundColor: AppColors.accentBg,
-      child: Text(
-        name.isEmpty ? '?' : name[0].toUpperCase(),
-        style: GoogleFonts.dmSans(
-          fontSize: radius - 2,
-          color: AppColors.primary,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-}
-
-class _MiniStat extends StatelessWidget {
-  final IconData icon;
-  final int value;
-
-  const _MiniStat({required this.icon, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 14, color: AppColors.textHint),
-        const SizedBox(width: 3),
-        Text(
-          '$value',
-          style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint),
-        ),
-      ],
-    );
+    return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(14), child: panel);
   }
 }
 
 class _EmptyForumState extends StatelessWidget {
   final String text;
-
   const _EmptyForumState({required this.text});
-
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.forum_outlined,
-              size: 34,
-              color: AppColors.textHint,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              text,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.dmSans(
-                fontSize: 13,
-                color: AppColors.textSec,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Center(
+    child: Padding(padding: const EdgeInsets.all(32),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Icon(Icons.forum_outlined, size: 44, color: AppColors.textHint),
+        const SizedBox(height: 12),
+        Text(text, textAlign: TextAlign.center,
+            style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.textSec, fontWeight: FontWeight.w600)),
+      ]),
+    ),
+  );
 }
 
-String? _validateTitle(String value) {
-  final text = value.trim();
-  if (text.length < 8) return 'El titulo necesita al menos 8 caracteres';
-  if (text.length > 90) return 'El titulo es demasiado largo';
-  return null;
-}
-
-String? _validateBody(String value) {
-  final text = value.trim();
-  if (text.length < 3) return 'Escribe un poco mas antes de publicar';
-  if (text.length > 800) return 'El mensaje supera los 800 caracteres';
-  final blocked = ['telefono', 'direccion exacta', 'password', 'contrasena'];
-  if (blocked.any((word) => text.toLowerCase().contains(word))) {
-    return 'Evita compartir datos personales o sensibles';
-  }
-  return null;
+class _GuidelinesBox extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(color: AppColors.accentBg, borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border)),
+    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Icon(Icons.verified_user_outlined, size: 18, color: AppColors.primary),
+      const SizedBox(width: 8),
+      Expanded(child: Text('Publica contenido propio, evita datos personales y mantén un tono respetuoso.',
+          style: GoogleFonts.dmSans(fontSize: 12, color: AppColors.textSec, height: 1.35))),
+    ]),
+  );
 }
 
 String _relativeTime(DateTime date) {

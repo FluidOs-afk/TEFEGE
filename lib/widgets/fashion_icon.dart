@@ -67,7 +67,7 @@ class _FashionPainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round;
 
     final fill = Paint()
-      ..color = color.withOpacity(0.12)
+      ..color = color.withValues(alpha: 0.12)
       ..style = PaintingStyle.fill;
 
     final path = _buildPath(size);

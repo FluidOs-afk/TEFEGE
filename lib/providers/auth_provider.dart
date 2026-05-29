@@ -1,181 +1,129 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
-import '../services/profile_service.dart';
+import '../services/notifications_service.dart';
 
 class AuthProvider extends ChangeNotifier {
-  static const _usersKey = 'outfy_users_v2';
-  static const _sessionKey = 'outfy_session_v2';
-  static const _passwordsKey = 'outfy_passwords_v2';
+  final _auth = FirebaseAuth.instance;
+  final _db = FirebaseFirestore.instance;
 
   UserModel? _currentUser;
+  bool _initialized = false;
   bool _isLoading = false;
   String? _error;
 
   UserModel? get currentUser => _currentUser;
   bool get isLoggedIn => _currentUser != null;
+  bool get isInitialized => _initialized;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  void clearError() {
-    _error = null;
-    notifyListeners();
+  AuthProvider() {
+    _auth.authStateChanges().listen(_onAuthStateChanged);
   }
 
-  Future<void> checkSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    final sessionId = prefs.getString(_sessionKey);
-    if (sessionId == null) return;
-
-    final usersRaw = prefs.getString(_usersKey);
-    if (usersRaw == null) return;
-
+  Future<void> _onAuthStateChanged(User? firebaseUser) async {
+    if (firebaseUser == null) {
+      _currentUser = null;
+      _initialized = true;
+      notifyListeners();
+      return;
+    }
     try {
-      final list = jsonDecode(usersRaw) as List<dynamic>;
-      final matches = list
-          .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
-          .where((u) => u.id == sessionId)
-          .toList();
-
-      if (matches.isNotEmpty) {
-        _currentUser = matches.first;
-        await _syncProfile(_currentUser!);
+      final doc = await _db.collection('users').doc(firebaseUser.uid).get();
+      _currentUser = doc.exists ? UserModel.fromFirestore(doc) : null;
+      if (_currentUser != null) {
+        NotificationsService.instance.saveToken(firebaseUser.uid);
       }
     } catch (_) {
       _currentUser = null;
     }
+    _initialized = true;
+    notifyListeners();
   }
 
   Future<AuthResult> login(String email, String password) async {
     _setLoading(true);
-
-    // Simula latencia de red para UX realista
-    await Future.delayed(const Duration(milliseconds: 700));
-
-    final prefs = await SharedPreferences.getInstance();
-
     try {
-      final usersRaw = prefs.getString(_usersKey);
-      if (usersRaw == null) {
-        return _fail('No existe ninguna cuenta con ese correo electrónico.');
-      }
-
-      final list = jsonDecode(usersRaw) as List<dynamic>;
-      final users = list
-          .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
-          .toList();
-
-      final emailLower = email.toLowerCase().trim();
-      final matching = users.where((u) => u.email.toLowerCase() == emailLower).toList();
-
-      if (matching.isEmpty) {
-        return _fail('No existe ninguna cuenta con ese correo electrónico.');
-      }
-
-      final user = matching.first;
-      final passwordsRaw = prefs.getString(_passwordsKey);
-      if (passwordsRaw == null) {
-        return _fail('Error de autenticación. Inténtalo de nuevo.');
-      }
-
-      final passwords = jsonDecode(passwordsRaw) as Map<String, dynamic>;
-      final stored = passwords[user.id] as String?;
-
-      if (stored == null || stored != UserModel.hashPassword(password)) {
-        return _fail('Contraseña incorrecta.');
-      }
-
-      _currentUser = user;
-      await prefs.setString(_sessionKey, user.id);
-      await _syncProfile(user);
-
-      _isLoading = false;
-      notifyListeners();
+      await _auth.signInWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
       return AuthResult.success();
-    } catch (e) {
+    } on FirebaseAuthException catch (e) {
+      return _fail(_authErrorToSpanish(e.code));
+    } catch (_) {
       return _fail('Error inesperado. Inténtalo de nuevo.');
     }
   }
 
-  Future<AuthResult> register(UserModel user, String password) async {
+  Future<AuthResult> register({
+    required String email,
+    required String password,
+    required String nombre,
+    required String username,
+  }) async {
     _setLoading(true);
-
-    await Future.delayed(const Duration(milliseconds: 900));
-
-    final prefs = await SharedPreferences.getInstance();
-
     try {
-      final usersRaw = prefs.getString(_usersKey);
-      final List<UserModel> existing = usersRaw != null
-          ? (jsonDecode(usersRaw) as List<dynamic>)
-              .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
-              .toList()
-          : [];
-
-      if (existing.any((u) => u.email.toLowerCase() == user.email.toLowerCase())) {
-        return _fail('Este correo electrónico ya está registrado.');
-      }
-
-      if (existing.any((u) => u.username.toLowerCase() == user.username.toLowerCase())) {
-        return _fail('Este nombre de usuario ya está en uso.');
-      }
-
-      final updated = [...existing, user];
-      await prefs.setString(
-        _usersKey,
-        jsonEncode(updated.map((u) => u.toJson()).toList()),
+      final cred = await _auth.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
       );
-
-      final passwordsRaw = prefs.getString(_passwordsKey);
-      final passwords = passwordsRaw != null
-          ? jsonDecode(passwordsRaw) as Map<String, dynamic>
-          : <String, dynamic>{};
-      passwords[user.id] = UserModel.hashPassword(password);
-      await prefs.setString(_passwordsKey, jsonEncode(passwords));
-
-      await prefs.setString(_sessionKey, user.id);
-      _currentUser = user;
-      await _syncProfile(user);
-
+      final uid = cred.user!.uid;
+      final now = DateTime.now();
+      await _db.collection('users').doc(uid).set({
+        'nombre': nombre.trim(),
+        'username': username.trim().toLowerCase(),
+        'bio': '',
+        'avatarBase64': '',
+        'isPrivate': false,
+        'followers': [],
+        'following': [],
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      _currentUser = UserModel(
+        uid: uid,
+        nombre: nombre.trim(),
+        username: username.trim().toLowerCase(),
+        createdAt: now,
+      );
       _isLoading = false;
       notifyListeners();
       return AuthResult.success();
-    } catch (e) {
+    } on FirebaseAuthException catch (e) {
+      return _fail(_authErrorToSpanish(e.code));
+    } catch (_) {
       return _fail('Error al crear la cuenta. Inténtalo de nuevo.');
     }
   }
 
   Future<void> logout() async {
-    _currentUser = null;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_sessionKey);
+    await _auth.signOut();
+  }
+
+  Future<AuthResult> sendPasswordReset(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim());
+      return AuthResult.success();
+    } on FirebaseAuthException catch (e) {
+      return AuthResult.failure(_authErrorToSpanish(e.code));
+    }
+  }
+
+  Future<void> refreshCurrentUser() async {
+    final firebaseUser = _auth.currentUser;
+    if (firebaseUser == null) return;
+    try {
+      final doc = await _db.collection('users').doc(firebaseUser.uid).get();
+      _currentUser = doc.exists ? UserModel.fromFirestore(doc) : null;
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  void clearError() {
+    _error = null;
     notifyListeners();
-  }
-
-  Future<bool> isUsernameAvailable(String username) async {
-    final prefs = await SharedPreferences.getInstance();
-    final usersRaw = prefs.getString(_usersKey);
-    if (usersRaw == null) return true;
-
-    final users = (jsonDecode(usersRaw) as List<dynamic>)
-        .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
-        .toList();
-
-    return !users.any(
-      (u) => u.username.toLowerCase() == username.toLowerCase(),
-    );
-  }
-
-  Future<void> _syncProfile(UserModel user) async {
-    await ProfileService.instance.save(UserProfile(
-      userId: user.id,
-      username: user.username,
-      displayName: user.displayName,
-      bio: user.bio ?? '',
-      location: user.location,
-      profileImagePath: user.profileImagePath,
-    ));
   }
 
   void _setLoading(bool v) {
@@ -190,6 +138,19 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
     return AuthResult.failure(msg);
   }
+
+  String _authErrorToSpanish(String code) => switch (code) {
+        'user-not-found' => 'No existe ninguna cuenta con ese correo.',
+        'wrong-password' => 'Contraseña incorrecta.',
+        'invalid-credential' => 'Email o contraseña incorrectos.',
+        'email-already-in-use' => 'Este email ya está registrado.',
+        'weak-password' => 'La contraseña debe tener al menos 6 caracteres.',
+        'invalid-email' => 'El email no tiene un formato válido.',
+        'too-many-requests' => 'Demasiados intentos. Inténtalo más tarde.',
+        'network-request-failed' => 'Sin conexión. Comprueba tu internet.',
+        'user-disabled' => 'Esta cuenta ha sido desactivada.',
+        _ => 'Error de autenticación. Inténtalo de nuevo.',
+      };
 }
 
 class AuthResult {

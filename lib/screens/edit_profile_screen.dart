@@ -1,7 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import '../main.dart' show AppColors;
+import '../providers/auth_provider.dart';
 import '../services/profile_service.dart';
+import '../utils/image_utils.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -11,74 +16,140 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
+  late final TextEditingController _nombreCtrl;
   late final TextEditingController _usernameCtrl;
-  late final TextEditingController _displayNameCtrl;
   late final TextEditingController _bioCtrl;
-  late final TextEditingController _locationCtrl;
 
-  late UserProfile _original;
+  bool _isPrivate = false;
   bool _saving = false;
+  File? _newAvatarFile;
+  String _currentAvatarBase64 = '';
 
   @override
   void initState() {
     super.initState();
-    _original = ProfileService.instance.profile;
-    _usernameCtrl = TextEditingController(text: _original.username);
-    _displayNameCtrl = TextEditingController(text: _original.displayName);
-    _bioCtrl = TextEditingController(text: _original.bio);
-    _locationCtrl = TextEditingController(text: _original.location);
+    final user = context.read<AuthProvider>().currentUser;
+    _nombreCtrl = TextEditingController(text: user?.nombre ?? '');
+    _usernameCtrl = TextEditingController(text: user?.username ?? '');
+    _bioCtrl = TextEditingController(text: user?.bio ?? '');
+    _isPrivate = user?.isPrivate ?? false;
+    _currentAvatarBase64 = user?.avatarBase64 ?? '';
   }
 
   @override
   void dispose() {
+    _nombreCtrl.dispose();
     _usernameCtrl.dispose();
-    _displayNameCtrl.dispose();
     _bioCtrl.dispose();
-    _locationCtrl.dispose();
     super.dispose();
   }
 
-  bool get _usernameChanged =>
-      _usernameCtrl.text.trim() != _original.username;
+  Future<void> _pickAvatar() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(2)),
+              ),
+              const SizedBox(height: 20),
+              Text('Cambiar foto',
+                  style: GoogleFonts.dmSans(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                      color: AppColors.textPrimary)),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(child: _sourceOption(ctx, Icons.camera_alt_outlined, 'Cámara', ImageSource.camera)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _sourceOption(ctx, Icons.photo_library_outlined, 'Galería', ImageSource.gallery)),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (source == null) return;
+    final file = await ImagePicker().pickImage(
+        source: source, imageQuality: 85, maxWidth: 800);
+    if (file != null && mounted) {
+      setState(() => _newAvatarFile = File(file.path));
+    }
+  }
+
+  Widget _sourceOption(BuildContext ctx, IconData icon, String label, ImageSource source) {
+    return GestureDetector(
+      onTap: () => Navigator.of(ctx).pop(source),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        decoration: BoxDecoration(
+          color: AppColors.bgPage,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: AppColors.primary, size: 26),
+            const SizedBox(height: 8),
+            Text(label,
+                style: GoogleFonts.dmSans(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: AppColors.textPrimary)),
+          ],
+        ),
+      ),
+    );
+  }
 
   Future<void> _save() async {
-    final username = _usernameCtrl.text.trim();
-    final displayName = _displayNameCtrl.text.trim();
+    final nombre = _nombreCtrl.text.trim();
+    final username = _usernameCtrl.text.trim().toLowerCase();
     final bio = _bioCtrl.text.trim();
-    final location = _locationCtrl.text.trim();
 
-    if (displayName.isEmpty) {
-      _showError('El nombre no puede estar vacío.');
-      return;
-    }
-    if (username.isEmpty) {
-      _showError('El nombre de usuario no puede estar vacío.');
-      return;
-    }
-    if (_usernameChanged && !_original.canChangeUsername) {
-      _showError(
-          'Solo puedes cambiar tu nombre de usuario una vez por semana.');
-      return;
+    if (nombre.isEmpty) { _showError('El nombre no puede estar vacío.'); return; }
+    if (username.isEmpty || username.contains(' ')) {
+      _showError('El usuario no puede estar vacío ni tener espacios.'); return;
     }
 
     setState(() => _saving = true);
+    final auth = context.read<AuthProvider>();
+    final uid = auth.currentUser!.uid;
 
-    final updated = _original.copyWith(
-      username: username,
-      displayName: displayName,
-      bio: bio,
-      location: location,
-      lastUsernameChange:
-          _usernameChanged ? DateTime.now() : _original.lastUsernameChange,
-    );
-
-    await ProfileService.instance.save(updated);
-    if (mounted) Navigator.of(context).pop();
+    try {
+      if (_newAvatarFile != null) {
+        await ProfileService.instance.saveAvatarBase64(uid, _newAvatarFile!);
+      }
+      await ProfileService.instance.updateUser(uid, {
+        'nombre': nombre,
+        'username': username,
+        'bio': bio,
+        'isPrivate': _isPrivate,
+      });
+      await auth.refreshCurrentUser();
+      if (mounted) Navigator.of(context).pop();
+    } catch (_) {
+      if (mounted) _showError('Error al guardar. Inténtalo de nuevo.');
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg)),
+      SnackBar(content: Text(msg, style: GoogleFonts.dmSans())),
     );
   }
 
@@ -88,26 +159,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       backgroundColor: AppColors.bgPage,
       appBar: AppBar(
         title: Text('Editar perfil',
-            style: GoogleFonts.dmSans(
-                fontWeight: FontWeight.w700, fontSize: 17)),
+            style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 17)),
         actions: [
           _saving
               ? const Padding(
                   padding: EdgeInsets.only(right: 16),
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                )
+                  child: SizedBox(width: 20, height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)))
               : TextButton(
                   onPressed: _save,
                   child: Text('Guardar',
                       style: GoogleFonts.dmSans(
                           fontWeight: FontWeight.w700,
                           color: AppColors.primary,
-                          fontSize: 15)),
-                ),
+                          fontSize: 15))),
         ],
       ),
       body: SingleChildScrollView(
@@ -115,56 +180,54 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ─── Avatar ────────────────────────────────────────────────
             Center(
-              child: Stack(
-                children: [
-                  _buildAvatar(),
-                  Positioned(
-                    right: 0,
-                    bottom: 0,
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
+              child: GestureDetector(
+                onTap: _pickAvatar,
+                child: Stack(
+                  children: [
+                    _buildAvatar(),
+                    Positioned(
+                      right: 0, bottom: 0,
+                      child: Container(
+                        width: 30, height: 30,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Icon(Icons.camera_alt_outlined, size: 15, color: Colors.white),
                       ),
-                      child: const Icon(Icons.camera_alt_outlined,
-                          size: 14, color: Colors.white),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 32),
 
-            // ─── Nombre de usuario ─────────────────────────────────────
-            _buildSectionLabel('Nombre de usuario'),
-            const SizedBox(height: 6),
-            _UsernameField(
-              controller: _usernameCtrl,
-              profile: _original,
-            ),
-            const SizedBox(height: 20),
-
-            // ─── Nombre visible ────────────────────────────────────────
-            _buildSectionLabel('Nombre'),
+            _label('Nombre completo'),
             const SizedBox(height: 6),
             TextField(
-              controller: _displayNameCtrl,
+              controller: _nombreCtrl,
               textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(
                 hintText: 'Tu nombre completo',
-                prefixIcon:
-                    Icon(Icons.person_outline_rounded, size: 20),
+                prefixIcon: Icon(Icons.person_outline_rounded, size: 20),
               ),
             ),
             const SizedBox(height: 20),
 
-            // ─── Biografía ─────────────────────────────────────────────
-            _buildSectionLabel('Biografía'),
+            _label('Nombre de usuario'),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _usernameCtrl,
+              decoration: const InputDecoration(
+                hintText: 'tu.usuario',
+                prefixIcon: Icon(Icons.alternate_email_rounded, size: 20),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            _label('Biografía'),
             const SizedBox(height: 6),
             TextField(
               controller: _bioCtrl,
@@ -178,21 +241,31 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
             const SizedBox(height: 8),
 
-            // ─── Ubicación ─────────────────────────────────────────────
-            _buildSectionLabel('Ubicación'),
+            _label('Privacidad'),
             const SizedBox(height: 6),
-            TextField(
-              controller: _locationCtrl,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                hintText: 'Ciudad, País',
-                prefixIcon:
-                    Icon(Icons.location_on_outlined, size: 20),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: SwitchListTile(
+                value: _isPrivate,
+                onChanged: (v) => setState(() => _isPrivate = v),
+                activeThumbColor: AppColors.primary,
+                activeTrackColor: AppColors.primaryLight,
+                title: Text('Perfil privado',
+                    style: GoogleFonts.dmSans(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: AppColors.textPrimary)),
+                subtitle: Text(
+                    _isPrivate ? 'Solo tus seguidores ven tus posts' : 'Cualquier usuario puede ver tu perfil',
+                    style: GoogleFonts.dmSans(fontSize: 12, color: AppColors.textHint)),
               ),
             ),
             const SizedBox(height: 32),
 
-            // ─── Botón guardar ─────────────────────────────────────────
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -207,101 +280,38 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Widget _buildAvatar() {
-    return ListenableBuilder(
-      listenable: _displayNameCtrl,
-      builder: (context, child) {
-        final initials = _computeInitials(_displayNameCtrl.text);
-        return Container(
-          width: 88,
-          height: 88,
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [AppColors.primary, AppColors.primaryLight],
-            ),
-          ),
-          child: Center(
-            child: Text(
-              initials,
-              style: GoogleFonts.dmSans(
-                  color: Colors.white,
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildSectionLabel(String label) {
-    return Text(label,
-        style: GoogleFonts.dmSans(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textSec,
-            letterSpacing: 0.5));
-  }
-
-  static String _computeInitials(String name) {
-    final parts = name.trim().split(RegExp(r'\s+'));
-    if (parts.length >= 2 && parts[1].isNotEmpty) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    const size = 96.0;
+    if (_newAvatarFile != null) {
+      return ClipOval(child: Image.file(_newAvatarFile!, width: size, height: size, fit: BoxFit.cover));
     }
-    return name.isNotEmpty ? name[0].toUpperCase() : '?';
+    if (_currentAvatarBase64.isNotEmpty) {
+      return ClipOval(child: SizedBox(width: size, height: size,
+          child: ImageUtils.imageFromBase64(_currentAvatarBase64)));
+    }
+    return _initials(size);
   }
-}
 
-// ─── Username field con lógica de cooldown ─────────────────────────────────────
-class _UsernameField extends StatelessWidget {
-  final TextEditingController controller;
-  final UserProfile profile;
-
-  const _UsernameField({
-    required this.controller,
-    required this.profile,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final locked = !profile.canChangeUsername;
-    final days = profile.daysUntilUsernameChange;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextField(
-          controller: controller,
-          enabled: !locked,
-          decoration: InputDecoration(
-            hintText: 'tu.usuario',
-            prefixIcon: const Icon(Icons.alternate_email_rounded, size: 20),
-            suffixIcon: locked
-                ? Tooltip(
-                    message: 'Disponible en $days día${days == 1 ? '' : 's'}',
-                    child: const Icon(Icons.lock_outline_rounded,
-                        size: 18, color: AppColors.textHint),
-                  )
-                : null,
-            fillColor: locked ? const Color(0xFFF0F4F2) : null,
-          ),
-        ),
-        if (locked) ...[
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              const Icon(Icons.info_outline_rounded,
-                  size: 13, color: AppColors.textHint),
-              const SizedBox(width: 4),
-              Text(
-                'Podrás cambiarlo en $days día${days == 1 ? '' : 's'}',
-                style: GoogleFonts.dmSans(
-                    fontSize: 12, color: AppColors.textHint),
-              ),
-            ],
-          ),
-        ],
-      ],
+  Widget _initials(double size) {
+    final text = _nombreCtrl.text;
+    final parts = text.trim().split(' ');
+    final ini = parts.length >= 2 && parts[1].isNotEmpty
+        ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
+        : text.isNotEmpty ? text[0].toUpperCase() : '?';
+    return Container(
+      width: size, height: size,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(colors: [AppColors.primary, AppColors.primaryLight]),
+      ),
+      child: Center(
+        child: Text(ini,
+            style: GoogleFonts.dmSans(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800)),
+      ),
     );
   }
+
+  Widget _label(String text) => Text(text,
+      style: GoogleFonts.dmSans(
+          fontSize: 12, fontWeight: FontWeight.w700,
+          color: AppColors.textSec, letterSpacing: 0.5));
 }
