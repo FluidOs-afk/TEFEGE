@@ -5,6 +5,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
 import 'services/notifications_service.dart';
 import 'screens/feed_screen.dart';
@@ -34,7 +35,7 @@ final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await NotificationsService.instance.init(scaffoldMessengerKey);
   await initializeDateFormatting('es', null);
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
