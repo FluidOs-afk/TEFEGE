@@ -35,12 +35,19 @@ final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: '.env');
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  try { await dotenv.load(fileName: '.env'); } catch (_) {}
+
   try {
-    await NotificationsService.instance.init(scaffoldMessengerKey);
-  } catch (_) {}
-  await initializeDateFormatting('es', null);
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  } catch (e) {
+    runApp(_ErrorApp('Firebase no inicializado: $e'));
+    return;
+  }
+
+  try { await NotificationsService.instance.init(scaffoldMessengerKey); } catch (_) {}
+  try { await initializeDateFormatting('es', null); } catch (_) {}
+
   if (!kIsWeb) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -325,6 +332,39 @@ class _OutfyNavBar extends StatelessWidget {
             child: Icon(
               on ? Icons.auto_awesome_rounded : Icons.auto_awesome_outlined,
               color: Colors.white, size: 23,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorApp extends StatelessWidget {
+  final String message;
+  const _ErrorApp(this.message);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: const Color(0xFF0F4229),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white70, size: 56),
+                const SizedBox(height: 16),
+                const Text('Error al iniciar OUTFY',
+                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                Text(message,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white60, fontSize: 13)),
+              ],
             ),
           ),
         ),
