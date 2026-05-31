@@ -19,9 +19,17 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentUid = context.read<AuthProvider>().currentUser?.uid ?? '';
+    final auth = context.watch<AuthProvider>();
+    final currentUid = auth.currentUser?.uid ?? '';
     final targetUid = userId ?? currentUid;
     final isOwn = targetUid == currentUid;
+
+    if (targetUid.isEmpty) {
+      return const Scaffold(
+        backgroundColor: AppColors.bgPage,
+        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+      );
+    }
 
     return StreamBuilder<UserModel>(
       stream: ProfileService.instance.streamUser(targetUid),

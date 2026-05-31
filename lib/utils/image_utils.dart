@@ -1,21 +1,12 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'image_utils_native.dart' if (dart.library.html) 'image_utils_web.dart';
 
 class ImageUtils {
   ImageUtils._();
 
-  static Future<String> imageToBase64(File imageFile) async {
-    final compressed = await FlutterImageCompress.compressWithFile(
-      imageFile.absolute.path,
-      minWidth: 800,
-      minHeight: 800,
-      quality: 70,
-      format: CompressFormat.jpeg,
-    );
-    if (compressed == null) throw Exception('Error al comprimir imagen');
-    return base64Encode(compressed);
+  static Future<String> imageToBase64(dynamic imageFile) async {
+    return compressImageToBase64(imageFile);
   }
 
   static Widget imageFromBase64(
