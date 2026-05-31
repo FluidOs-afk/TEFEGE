@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -22,7 +21,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   bool _isPrivate = false;
   bool _saving = false;
-  File? _newAvatarFile;
+  XFile? _newAvatarFile;
   String _currentAvatarBase64 = '';
 
   @override
@@ -55,26 +54,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 40, height: 4,
-                decoration: BoxDecoration(
-                    color: AppColors.border,
-                    borderRadius: BorderRadius.circular(2)),
-              ),
+              Container(width: 40, height: 4,
+                  decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2))),
               const SizedBox(height: 20),
               Text('Cambiar foto',
-                  style: GoogleFonts.dmSans(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                      color: AppColors.textPrimary)),
+                  style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 16, color: AppColors.textPrimary)),
               const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(child: _sourceOption(ctx, Icons.camera_alt_outlined, 'Cámara', ImageSource.camera)),
-                  const SizedBox(width: 12),
-                  Expanded(child: _sourceOption(ctx, Icons.photo_library_outlined, 'Galería', ImageSource.gallery)),
-                ],
-              ),
+              Row(children: [
+                Expanded(child: _sourceOption(ctx, Icons.camera_alt_outlined, 'Cámara', ImageSource.camera)),
+                const SizedBox(width: 12),
+                Expanded(child: _sourceOption(ctx, Icons.photo_library_outlined, 'Galería', ImageSource.gallery)),
+              ]),
               const SizedBox(height: 8),
             ],
           ),
@@ -82,10 +72,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
     );
     if (source == null) return;
-    final file = await ImagePicker().pickImage(
-        source: source, imageQuality: 85, maxWidth: 800);
+    final file = await ImagePicker().pickImage(source: source, imageQuality: 85, maxWidth: 800);
     if (file != null && mounted) {
-      setState(() => _newAvatarFile = File(file.path));
+      setState(() => _newAvatarFile = file);
     }
   }
 
@@ -99,17 +88,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: AppColors.border),
         ),
-        child: Column(
-          children: [
-            Icon(icon, color: AppColors.primary, size: 26),
-            const SizedBox(height: 8),
-            Text(label,
-                style: GoogleFonts.dmSans(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                    color: AppColors.textPrimary)),
-          ],
-        ),
+        child: Column(children: [
+          Icon(icon, color: AppColors.primary, size: 26),
+          const SizedBox(height: 8),
+          Text(label, style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textPrimary)),
+        ]),
       ),
     );
   }
@@ -158,21 +141,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Scaffold(
       backgroundColor: AppColors.bgPage,
       appBar: AppBar(
-        title: Text('Editar perfil',
-            style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 17)),
+        title: Text('Editar perfil', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 17)),
         actions: [
           _saving
-              ? const Padding(
-                  padding: EdgeInsets.only(right: 16),
+              ? const Padding(padding: EdgeInsets.only(right: 16),
                   child: SizedBox(width: 20, height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)))
               : TextButton(
                   onPressed: _save,
                   child: Text('Guardar',
-                      style: GoogleFonts.dmSans(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
-                          fontSize: 15))),
+                      style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, color: AppColors.primary, fontSize: 15))),
         ],
       ),
       body: SingleChildScrollView(
@@ -183,82 +161,55 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             Center(
               child: GestureDetector(
                 onTap: _pickAvatar,
-                child: Stack(
-                  children: [
-                    _buildAvatar(),
-                    Positioned(
-                      right: 0, bottom: 0,
-                      child: Container(
-                        width: 30, height: 30,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        child: const Icon(Icons.camera_alt_outlined, size: 15, color: Colors.white),
-                      ),
+                child: Stack(children: [
+                  _buildAvatar(),
+                  Positioned(right: 0, bottom: 0,
+                    child: Container(
+                      width: 30, height: 30,
+                      decoration: BoxDecoration(color: AppColors.primary, shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2)),
+                      child: const Icon(Icons.camera_alt_outlined, size: 15, color: Colors.white),
                     ),
-                  ],
-                ),
+                  ),
+                ]),
               ),
             ),
             const SizedBox(height: 32),
 
             _label('Nombre completo'),
             const SizedBox(height: 6),
-            TextField(
-              controller: _nombreCtrl,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                hintText: 'Tu nombre completo',
-                prefixIcon: Icon(Icons.person_outline_rounded, size: 20),
-              ),
-            ),
+            TextField(controller: _nombreCtrl, textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(hintText: 'Tu nombre completo',
+                    prefixIcon: Icon(Icons.person_outline_rounded, size: 20))),
             const SizedBox(height: 20),
 
             _label('Nombre de usuario'),
             const SizedBox(height: 6),
-            TextField(
-              controller: _usernameCtrl,
-              decoration: const InputDecoration(
-                hintText: 'tu.usuario',
-                prefixIcon: Icon(Icons.alternate_email_rounded, size: 20),
-              ),
-            ),
+            TextField(controller: _usernameCtrl,
+                decoration: const InputDecoration(hintText: 'tu.usuario',
+                    prefixIcon: Icon(Icons.alternate_email_rounded, size: 20))),
             const SizedBox(height: 20),
 
             _label('Biografía'),
             const SizedBox(height: 6),
-            TextField(
-              controller: _bioCtrl,
-              maxLines: 4,
-              maxLength: 160,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                hintText: 'Cuéntanos sobre ti y tu estilo...',
-                alignLabelWithHint: true,
-              ),
-            ),
+            TextField(controller: _bioCtrl, maxLines: 4, maxLength: 160,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(hintText: 'Cuéntanos sobre ti y tu estilo...',
+                    alignLabelWithHint: true)),
             const SizedBox(height: 8),
 
             _label('Privacidad'),
             const SizedBox(height: 6),
             Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
-              ),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border)),
               child: SwitchListTile(
                 value: _isPrivate,
                 onChanged: (v) => setState(() => _isPrivate = v),
                 activeThumbColor: AppColors.primary,
                 activeTrackColor: AppColors.primaryLight,
                 title: Text('Perfil privado',
-                    style: GoogleFonts.dmSans(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: AppColors.textPrimary)),
+                    style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 14, color: AppColors.textPrimary)),
                 subtitle: Text(
                     _isPrivate ? 'Solo tus seguidores ven tus posts' : 'Cualquier usuario puede ver tu perfil',
                     style: GoogleFonts.dmSans(fontSize: 12, color: AppColors.textHint)),
@@ -266,13 +217,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
             const SizedBox(height: 32),
 
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _saving ? null : _save,
-                child: const Text('Guardar cambios'),
-              ),
-            ),
+            SizedBox(width: double.infinity,
+              child: ElevatedButton(onPressed: _saving ? null : _save, child: const Text('Guardar cambios'))),
           ],
         ),
       ),
@@ -282,7 +228,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget _buildAvatar() {
     const size = 96.0;
     if (_newAvatarFile != null) {
-      return ClipOval(child: Image.file(_newAvatarFile!, width: size, height: size, fit: BoxFit.cover));
+      return ClipOval(child: SizedBox(width: size, height: size,
+          child: ImageUtils.imageWidgetFromXFile(_newAvatarFile!)));
     }
     if (_currentAvatarBase64.isNotEmpty) {
       return ClipOval(child: SizedBox(width: size, height: size,
@@ -299,19 +246,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         : text.isNotEmpty ? text[0].toUpperCase() : '?';
     return Container(
       width: size, height: size,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(colors: [AppColors.primary, AppColors.primaryLight]),
-      ),
-      child: Center(
-        child: Text(ini,
-            style: GoogleFonts.dmSans(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800)),
-      ),
+      decoration: const BoxDecoration(shape: BoxShape.circle,
+          gradient: LinearGradient(colors: [AppColors.primary, AppColors.primaryLight])),
+      child: Center(child: Text(ini,
+          style: GoogleFonts.dmSans(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800))),
     );
   }
 
   Widget _label(String text) => Text(text,
-      style: GoogleFonts.dmSans(
-          fontSize: 12, fontWeight: FontWeight.w700,
-          color: AppColors.textSec, letterSpacing: 0.5));
+      style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textSec, letterSpacing: 0.5));
 }

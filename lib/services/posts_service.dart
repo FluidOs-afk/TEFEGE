@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/post_model.dart';
 import '../models/user_post.dart';
 import '../utils/image_utils.dart';
@@ -34,8 +34,7 @@ class PostsService {
         .map((s) => s.docs.map(PostModel.fromFirestore).toList());
   }
 
-  /// Comprime la imagen, la convierte a Base64 y guarda el post en Firestore.
-  Future<void> createPost(PostModel post, File imageFile) async {
+  Future<void> createPost(PostModel post, XFile imageFile) async {
     final docRef = _db.collection('posts').doc();
     final base64 = await ImageUtils.imageToBase64(imageFile);
     final data = post.toFirestore();
@@ -67,11 +66,7 @@ class PostsService {
   }
 
   Future<void> addComment(String postId, CommentModel comment) async {
-    await _db
-        .collection('posts')
-        .doc(postId)
-        .collection('comments')
-        .add(comment.toFirestore());
+    await _db.collection('posts').doc(postId).collection('comments').add(comment.toFirestore());
   }
 
   Stream<List<CommentModel>> streamComments(String postId) {

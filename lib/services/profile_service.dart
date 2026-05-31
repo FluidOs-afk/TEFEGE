@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/user_model.dart';
 import '../utils/image_utils.dart';
 
@@ -26,13 +26,9 @@ class ProfileService {
     await _db.collection('users').doc(uid).update(data);
   }
 
-  /// Comprime la imagen, la convierte a Base64 y la guarda en Firestore.
-  Future<void> saveAvatarBase64(String uid, File file) async {
+  Future<void> saveAvatarBase64(String uid, XFile file) async {
     final base64 = await ImageUtils.imageToBase64(file);
-    await _db
-        .collection('users')
-        .doc(uid)
-        .update({'avatarBase64': base64});
+    await _db.collection('users').doc(uid).update({'avatarBase64': base64});
   }
 
   Future<void> follow(String currentUid, String targetUid) async {
@@ -61,7 +57,6 @@ class ProfileService {
     final doc = await _db.collection('users').doc(currentUid).get();
     final data = doc.data();
     if (data == null) return false;
-    return List<String>.from(data['following'] as List? ?? [])
-        .contains(targetUid);
+    return List<String>.from(data['following'] as List? ?? []).contains(targetUid);
   }
 }

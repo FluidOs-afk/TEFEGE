@@ -1,22 +1,21 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:image_picker/image_picker.dart';
+import 'image_compress_web.dart'
+    if (dart.library.io) 'image_compress_native.dart';
 
 class ImageUtils {
   ImageUtils._();
 
-  static Future<String> imageToBase64(File imageFile) async {
-    final compressed = await FlutterImageCompress.compressWithFile(
-      imageFile.absolute.path,
-      minWidth: 800,
-      minHeight: 800,
-      quality: 70,
-      format: CompressFormat.jpeg,
-    );
-    if (compressed == null) throw Exception('Error al comprimir imagen');
-    return base64Encode(compressed);
+  static Future<String> imageToBase64(XFile xfile) async {
+    final compressed = await compressImage(xfile.path);
+    final bytes = compressed ?? await xfile.readAsBytes();
+    return base64Encode(bytes);
   }
+
+  static Widget imageWidgetFromXFile(XFile xfile, {BoxFit fit = BoxFit.cover}) =>
+      _XFileImage(xfile: xfile, fit: fit);
 
   static Widget imageFromBase64(
     String base64String, {
@@ -24,15 +23,43 @@ class ImageUtils {
     Widget? placeholder,
   }) {
     final fallback = placeholder ??
-        const ColoredBox(
-          color: Color(0xFFE8F5EE),
-          child: SizedBox.expand(),
-        );
+        const ColoredBox(color: Color(0xFFE8F5EE), child: SizedBox.expand());
     if (base64String.isEmpty) return fallback;
     try {
       return Image.memory(base64Decode(base64String), fit: fit);
     } catch (_) {
       return fallback;
     }
+  }
+}
+
+class _XFileImage extends StatefulWidget {
+  final XFile xfile;
+  final BoxFit fit;
+  const _XFileImage({required this.xfile, required this.fit});
+  @override
+  State<_XFileImage> createState() => _XFileImageState();
+}
+
+class _XFileImageState extends State<_XFileImage> {
+  late final Future<Uint8List> _bytes;
+
+  @override
+  void initState() {
+    super.initState();
+    _bytes = widget.xfile.readAsBytes();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Uint8List>(
+      future: _bytes,
+      builder: (_, snap) {
+        if (snap.hasData) {
+          return Image.memory(snap.data!, fit: widget.fit, width: double.infinity);
+        }
+        return const ColoredBox(color: Color(0xFFE8F5EE), child: SizedBox.expand());
+      },
+    );
   }
 }

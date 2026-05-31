@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,6 +8,7 @@ import '../models/wardrobe_item.dart';
 import '../providers/auth_provider.dart';
 import '../services/posts_service.dart';
 import '../services/wardrobe_service.dart';
+import '../utils/image_utils.dart';
 
 class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({super.key});
@@ -17,7 +17,7 @@ class CreatePostScreen extends StatefulWidget {
 }
 
 class _CreatePostScreenState extends State<CreatePostScreen> {
-  File? _imageFile;
+  XFile? _imageFile;
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final _tagCtrl = TextEditingController();
@@ -50,7 +50,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   Future<void> _pickImage(ImageSource source) async {
     final file = await ImagePicker().pickImage(source: source, imageQuality: 85, maxWidth: 1080);
-    if (file != null) setState(() => _imageFile = File(file.path));
+    if (file != null) setState(() => _imageFile = file);
   }
 
   void _addTag() {
@@ -223,7 +223,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         onTap: _showPhotoOptions,
         child: Stack(children: [
           ClipRRect(borderRadius: BorderRadius.circular(20),
-              child: Image.file(_imageFile!, width: 220, height: 220, fit: BoxFit.cover)),
+              child: SizedBox(width: 220, height: 220,
+                  child: ImageUtils.imageWidgetFromXFile(_imageFile!))),
           Positioned(bottom: 8, right: 8,
             child: Container(
               padding: const EdgeInsets.all(8),

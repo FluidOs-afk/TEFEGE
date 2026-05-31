@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -139,12 +139,14 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 onTap: () { Navigator.pop(context); _pickAndAdd(context, uid, ImageSource.gallery); },
               )),
             ]),
-            const SizedBox(height: 10),
-            _SourceOption(
-              icon: Icons.qr_code_scanner_rounded, label: 'Escanear código de barras',
-              sub: 'Importar nombre y marca automáticamente', color: const Color(0xFF7B2FBE), wide: true,
-              onTap: () { Navigator.pop(context); _scanBarcode(context, uid); },
-            ),
+            if (!kIsWeb) ...[
+              const SizedBox(height: 10),
+              _SourceOption(
+                icon: Icons.qr_code_scanner_rounded, label: 'Escanear código de barras',
+                sub: 'Importar nombre y marca automáticamente', color: const Color(0xFF7B2FBE), wide: true,
+                onTap: () { Navigator.pop(context); _scanBarcode(context, uid); },
+              ),
+            ],
           ]),
         ),
       ),
@@ -154,7 +156,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   Future<void> _pickAndAdd(BuildContext context, String uid, ImageSource source) async {
     final file = await ImagePicker().pickImage(source: source, imageQuality: 85, maxWidth: 1200);
     if (file == null || !context.mounted) return;
-    _showItemForm(context, uid, imageFile: File(file.path));
+    _showItemForm(context, uid, imageFile: file);
   }
 
   Future<void> _scanBarcode(BuildContext context, String uid) async {
@@ -165,7 +167,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     _showItemForm(context, uid, prefillCode: code);
   }
 
-  void _showItemForm(BuildContext context, String uid, {File? imageFile, String? prefillCode}) {
+  void _showItemForm(BuildContext context, String uid, {XFile? imageFile, String? prefillCode}) {
     showModalBottomSheet(
       context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
       builder: (_) => _ItemFormSheet(uid: uid, imageFile: imageFile, prefillCode: prefillCode),
@@ -252,7 +254,7 @@ class _ItemCard extends StatelessWidget {
 
 class _ItemFormSheet extends StatefulWidget {
   final String uid;
-  final File? imageFile;
+  final XFile? imageFile;
   final String? prefillCode;
   const _ItemFormSheet({required this.uid, this.imageFile, this.prefillCode});
   @override
@@ -319,8 +321,11 @@ class _ItemFormSheetState extends State<_ItemFormSheet> {
                 style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w700)),
             const SizedBox(height: 16),
             if (widget.imageFile != null) ...[
-              ClipRRect(borderRadius: BorderRadius.circular(12),
-                  child: Image.file(widget.imageFile!, height: 140, width: double.infinity, fit: BoxFit.cover)),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(height: 140, width: double.infinity,
+                    child: ImageUtils.imageWidgetFromXFile(widget.imageFile!)),
+              ),
               const SizedBox(height: 16),
             ],
             TextField(controller: _nombreCtrl, textCapitalization: TextCapitalization.sentences,
