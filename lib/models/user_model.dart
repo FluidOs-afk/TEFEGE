@@ -9,6 +9,7 @@ class UserModel {
   final bool isPrivate;
   final List<String> followers;
   final List<String> following;
+  final List<String> pendingRequests;
   final String? fcmToken;
   final DateTime createdAt;
 
@@ -21,6 +22,7 @@ class UserModel {
     this.isPrivate = false,
     this.followers = const [],
     this.following = const [],
+    this.pendingRequests = const [],
     this.fcmToken,
     required this.createdAt,
   });
@@ -44,6 +46,7 @@ class UserModel {
       isPrivate: data['isPrivate'] as bool? ?? false,
       followers: List<String>.from(data['followers'] as List? ?? []),
       following: List<String>.from(data['following'] as List? ?? []),
+      pendingRequests: List<String>.from(data['pendingRequests'] as List? ?? []),
       fcmToken: data['fcmToken'] as String?,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -57,6 +60,7 @@ class UserModel {
         'isPrivate': isPrivate,
         'followers': followers,
         'following': following,
+        'pendingRequests': pendingRequests,
         if (fcmToken != null) 'fcmToken': fcmToken,
         'createdAt': Timestamp.fromDate(createdAt),
       };
@@ -70,6 +74,7 @@ class UserModel {
     bool? isPrivate,
     List<String>? followers,
     List<String>? following,
+    List<String>? pendingRequests,
     String? fcmToken,
     DateTime? createdAt,
   }) =>
@@ -82,6 +87,7 @@ class UserModel {
         isPrivate: isPrivate ?? this.isPrivate,
         followers: followers ?? this.followers,
         following: following ?? this.following,
+        pendingRequests: pendingRequests ?? this.pendingRequests,
         fcmToken: fcmToken ?? this.fcmToken,
         createdAt: createdAt ?? this.createdAt,
       );

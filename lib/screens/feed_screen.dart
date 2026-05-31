@@ -2,12 +2,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../main.dart' show AppColors;
 import '../models/post_model.dart';
 import '../providers/auth_provider.dart';
 import '../services/posts_service.dart';
 import '../utils/image_utils.dart';
+import '../widgets/fashion_icon.dart';
 import 'post_detail_screen.dart';
 import 'profile_screen.dart';
 import 'user_search_screen.dart';
@@ -36,6 +38,15 @@ class FeedScreen extends StatefulWidget {
 class _FeedScreenState extends State<FeedScreen> {
   int _limit = 10;
   bool _hasUnread = true;
+  final _picker = ImagePicker();
+
+  final List<_Story> _stories = [
+    _Story(label: 'sofia.s',   color: const Color(0xFF1B6B44), initial: 'S', hasNew: true,  title: 'Cápsula oficina',    detail: 'Blazer, denim recto y mocasín.',        category: FashionCategory.tops),
+    _Story(label: 'marta.f',   color: const Color(0xFF8E44AD), initial: 'M', hasNew: true,  title: 'Paleta pastel',      detail: 'Coral suave con lavanda y plata.',      category: FashionCategory.pants),
+    _Story(label: 'lucia.v',   color: const Color(0xFF9A6B4F), initial: 'L', hasNew: false, title: 'Hallazgo vintage',   detail: 'Abrigo de lana y bolso estructurado.',  category: FashionCategory.coat),
+    _Story(label: 'andrea.g',  color: const Color(0xFF455A64), initial: 'A', hasNew: true,  title: 'Noche satinada',     detail: 'Texturas brillantes con sandalias.',     category: FashionCategory.dress),
+    _Story(label: 'carmen.b',  color: const Color(0xFF00838F), initial: 'C', hasNew: false, title: 'Azules limpios',     detail: 'Camisa abierta y pantalón amplio.',     category: FashionCategory.accessory),
+  ];
 
   void _loadMore() => setState(() => _limit += 10);
 
@@ -94,6 +105,25 @@ class _FeedScreenState extends State<FeedScreen> {
               ],
             ),
             SliverToBoxAdapter(
+              child: Container(
+                color: AppColors.bgCard,
+                padding: const EdgeInsets.only(bottom: 12, top: 6),
+                child: SizedBox(
+                  height: 100,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _stories.length + 1,
+                    itemBuilder: (_, index) {
+                      if (index == 0) return _buildMyStory(context, auth);
+                      return _buildStoryItem(index - 1);
+                    },
+                  ),
+                ),
+              ),
+            ),
+            const SliverToBoxAdapter(child: Divider(height: 1, color: AppColors.border)),
+            SliverToBoxAdapter(
               child: StreamBuilder<List<PostModel>>(
                 stream: currentUid.isNotEmpty
                     ? PostsService.instance.streamFeedPosts(currentUid, following, limit: _limit)
@@ -150,6 +180,109 @@ class _FeedScreenState extends State<FeedScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildMyStory(BuildContext context, AuthProvider auth) {
+    final user = auth.currentUser;
+    final initial = user?.nombre.isNotEmpty == true ? user!.nombre[0].toUpperCase() : '+';
+    return GestureDetector(
+      onTap: () => _showCreateStory(context),
+      child: _StoryBubble(initial: initial, label: 'Tu historia', color: AppColors.primaryMed, hasNew: false, isMe: true),
+    );
+  }
+
+  Widget _buildStoryItem(int index) {
+    final story = _stories[index];
+    return GestureDetector(
+      onTap: () async {
+        await Navigator.of(context).push(PageRouteBuilder<void>(
+          opaque: false,
+          barrierColor: Colors.black,
+          pageBuilder: (_, __, ___) => _StoryViewer(
+            stories: _stories,
+            initialIndex: index,
+            onViewed: (i) { if (mounted) setState(() { _stories[i] = _stories[i].copyWith(hasNew: false); }); },
+          ),
+        ));
+      },
+      child: _StoryBubble(
+        initial: story.initial,
+        label: story.label.length > 8 ? '${story.label.substring(0, 7)}…' : story.label,
+        color: story.color,
+        hasNew: story.hasNew,
+        isMe: false,
+      ),
+    );
+  }
+
+  void _showCreateStory(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _BottomSheet(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 18),
+                Text('Crear historia', style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 6),
+                Text('Muestra tu outfit del día en una historia.', style: GoogleFonts.dmSans(color: AppColors.textSec, fontSize: 13)),
+                const SizedBox(height: 16),
+                Row(children: [
+                  Expanded(child: _sourceOption(context, Icons.camera_alt_outlined, 'Cámara', ImageSource.camera)),
+                  const SizedBox(width: 10),
+                  Expanded(child: _sourceOption(context, Icons.photo_library_outlined, 'Galería', ImageSource.gallery)),
+                ]),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sourceOption(BuildContext ctx, IconData icon, String label, ImageSource source) {
+    return GestureDetector(
+      onTap: () { Navigator.pop(ctx); _pickStoryImage(source); },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        decoration: BoxDecoration(color: AppColors.bgPage, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+        child: Column(children: [
+          Icon(icon, color: AppColors.primary, size: 26),
+          const SizedBox(height: 8),
+          Text(label, style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 13)),
+        ]),
+      ),
+    );
+  }
+
+  Future<void> _pickStoryImage(ImageSource source) async {
+    final image = await _picker.pickImage(source: source, imageQuality: 86, maxWidth: 1400);
+    if (image == null || !mounted) return;
+    final bytes = await image.readAsBytes();
+    if (!mounted) return;
+    final auth = context.read<AuthProvider>();
+    final user = auth.currentUser;
+    setState(() {
+      _stories.insert(0, _Story(
+        label: user?.username ?? 'tu.look',
+        color: AppColors.primary,
+        initial: user?.nombre.isNotEmpty == true ? user!.nombre[0].toUpperCase() : 'T',
+        hasNew: true,
+        title: source == ImageSource.camera ? 'Foto nueva' : 'Desde galería',
+        detail: 'Historia creada en esta sesión.',
+        category: FashionCategory.tops,
+        imageBytes: bytes,
+      ));
+    });
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Historia creada')));
+    }
   }
 
   void _showNotifications(BuildContext context) {
@@ -495,4 +628,225 @@ class _BottomSheet extends StatelessWidget {
     decoration: const BoxDecoration(color: AppColors.bgCard, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
     clipBehavior: Clip.hardEdge, child: child,
   );
+}
+
+// ── Stories ────────────────────────────────────────────────────────────────────
+
+class _Story {
+  final String label;
+  final String initial;
+  final Color color;
+  final bool hasNew;
+  final String title;
+  final String detail;
+  final FashionCategory category;
+  final Uint8List? imageBytes;
+
+  const _Story({
+    required this.label, required this.color, required this.initial,
+    required this.hasNew, required this.title, required this.detail,
+    required this.category, this.imageBytes,
+  });
+
+  _Story copyWith({bool? hasNew}) => _Story(
+    label: label, color: color, initial: initial,
+    hasNew: hasNew ?? this.hasNew, title: title, detail: detail,
+    category: category, imageBytes: imageBytes,
+  );
+}
+
+class _StoryBubble extends StatelessWidget {
+  final String initial;
+  final String label;
+  final Color color;
+  final bool hasNew;
+  final bool isMe;
+
+  const _StoryBubble({
+    required this.initial, required this.label, required this.color,
+    required this.hasNew, required this.isMe,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 76,
+      margin: const EdgeInsets.only(right: 12),
+      child: Column(children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          width: 68, height: 68,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: hasNew
+                ? const LinearGradient(colors: [AppColors.primary, AppColors.primaryLight], begin: Alignment.topLeft, end: Alignment.bottomRight)
+                : null,
+            color: hasNew ? null : AppColors.border,
+          ),
+          padding: const EdgeInsets.all(2.5),
+          child: Container(
+            decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.bgCard),
+            padding: const EdgeInsets.all(2),
+            child: isMe
+                ? Container(
+                    decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.accentBg),
+                    child: const Icon(Icons.add_rounded, color: AppColors.primary, size: 26))
+                : CircleAvatar(
+                    backgroundColor: color,
+                    child: Text(initial, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18))),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.dmSans(
+              fontSize: 10,
+              fontWeight: hasNew ? FontWeight.w700 : FontWeight.w500,
+              color: hasNew ? AppColors.textPrimary : AppColors.textHint,
+            )),
+      ]),
+    );
+  }
+}
+
+class _StoryViewer extends StatefulWidget {
+  final List<_Story> stories;
+  final int initialIndex;
+  final ValueChanged<int> onViewed;
+
+  const _StoryViewer({required this.stories, required this.initialIndex, required this.onViewed});
+
+  @override
+  State<_StoryViewer> createState() => _StoryViewerState();
+}
+
+class _StoryViewerState extends State<_StoryViewer> {
+  late final PageController _ctrl;
+  late int _index;
+  Timer? _timer;
+  double _progress = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _index = widget.initialIndex;
+    _ctrl = PageController(initialPage: _index);
+    WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) widget.onViewed(_index); });
+    _startTimer();
+  }
+
+  @override
+  void dispose() { _timer?.cancel(); _ctrl.dispose(); super.dispose(); }
+
+  void _startTimer() {
+    _timer?.cancel(); _progress = 0;
+    _timer = Timer.periodic(const Duration(milliseconds: 80), (t) {
+      if (!mounted) return;
+      setState(() => _progress = (_progress + 0.02).clamp(0, 1));
+      if (_progress >= 1) _next();
+    });
+  }
+
+  void _next() {
+    if (_index == widget.stories.length - 1) { Navigator.pop(context); return; }
+    _ctrl.nextPage(duration: const Duration(milliseconds: 240), curve: Curves.easeOut);
+  }
+
+  void _prev() {
+    if (_index == 0) { _startTimer(); return; }
+    _ctrl.previousPage(duration: const Duration(milliseconds: 240), curve: Curves.easeOut);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Stack(children: [
+          PageView.builder(
+            controller: _ctrl,
+            itemCount: widget.stories.length,
+            onPageChanged: (v) { setState(() => _index = v); widget.onViewed(v); _startTimer(); },
+            itemBuilder: (_, i) => _StoryPage(story: widget.stories[i]),
+          ),
+          Positioned(
+            top: 10, left: 10, right: 10,
+            child: Row(
+              children: List.generate(widget.stories.length, (i) {
+                final val = i < _index ? 1.0 : (i == _index ? _progress : 0.0);
+                return Expanded(child: Container(
+                  height: 3, margin: const EdgeInsets.symmetric(horizontal: 2),
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.28), borderRadius: BorderRadius.circular(8)),
+                  child: FractionallySizedBox(
+                    alignment: Alignment.centerLeft, widthFactor: val,
+                    child: Container(decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8))),
+                  ),
+                ));
+              }),
+            ),
+          ),
+          Positioned.fill(
+            top: 112,
+            child: Row(children: [
+              Expanded(child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: _prev)),
+              Expanded(child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: _next)),
+            ]),
+          ),
+          Positioned(top: 24, right: 8,
+              child: IconButton(onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded, color: Colors.white))),
+        ]),
+      ),
+    );
+  }
+}
+
+class _StoryPage extends StatelessWidget {
+  final _Story story;
+  const _StoryPage({required this.story});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [story.color, Color.lerp(story.color, Colors.black, 0.52)!],
+          begin: Alignment.topLeft, end: Alignment.bottomRight,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 58, 22, 28),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: Colors.white.withValues(alpha: 0.18),
+              child: Text(story.initial, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800)),
+            ),
+            const SizedBox(width: 10),
+            Text(story.label, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)),
+          ]),
+          const Spacer(),
+          Center(
+            child: story.imageBytes == null
+                ? Container(
+                    width: 210, height: 210,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.12), shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                    ),
+                    child: Center(child: FashionIcon(category: story.category, color: Colors.white, size: 112, strokeWidth: 2.5)),
+                  )
+                : ClipRRect(
+                    borderRadius: BorderRadius.circular(22),
+                    child: Image.memory(story.imageBytes!, width: double.infinity,
+                        height: MediaQuery.of(context).size.height * 0.52, fit: BoxFit.cover)),
+          ),
+          const Spacer(),
+          Text(story.title, style: GoogleFonts.playfairDisplay(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w800, height: 1.05)),
+          const SizedBox(height: 10),
+          Text(story.detail, style: GoogleFonts.dmSans(color: Colors.white.withValues(alpha: 0.86), fontSize: 15, height: 1.35)),
+        ]),
+      ),
+    );
+  }
 }

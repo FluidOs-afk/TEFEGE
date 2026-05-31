@@ -118,17 +118,10 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
                           itemBuilder: (_, i) => _UserTile(
                             user: _results[i],
                             currentUid: currentUser?.uid ?? '',
-                            isFollowing: currentUser?.following.contains(_results[i].uid) ?? false,
-                            onFollowChanged: () async {
-                              final uid = currentUser?.uid ?? '';
-                              if (uid.isEmpty) return;
-                              final target = _results[i].uid;
-                              final following = currentUser?.following.contains(target) ?? false;
-                              if (following) {
-                                await ProfileService.instance.unfollow(uid, target);
-                              } else {
-                                await ProfileService.instance.follow(uid, target);
-                              }
+                            isFollowing: _results[i].followers.contains(currentUser?.uid ?? ''),
+                            isPending: _results[i].pendingRequests
+                                .contains(currentUser?.uid ?? ''),
+                            onRefresh: () async {
                               if (context.mounted) {
                                 await context.read<AuthProvider>().refreshCurrentUser();
                               }
@@ -154,14 +147,42 @@ class _UserTile extends StatefulWidget {
   final UserModel user;
   final String currentUid;
   final bool isFollowing;
-  final Future<void> Function() onFollowChanged;
-  const _UserTile({required this.user, required this.currentUid, required this.isFollowing, required this.onFollowChanged});
+  final bool isPending;
+  final Future<void> Function() onRefresh;
+  const _UserTile({
+    required this.user,
+    required this.currentUid,
+    required this.isFollowing,
+    required this.isPending,
+    required this.onRefresh,
+  });
   @override
   State<_UserTile> createState() => _UserTileState();
 }
 
 class _UserTileState extends State<_UserTile> {
   bool _loading = false;
+  bool _actionDone = false;
+  late bool _localFollowing;
+  late bool _localPending;
+
+  @override
+  void initState() {
+    super.initState();
+    _localFollowing = widget.isFollowing;
+    _localPending = widget.isPending;
+  }
+
+  @override
+  void didUpdateWidget(_UserTile old) {
+    super.didUpdateWidget(old);
+    // Solo sincronizar con el padre si el usuario no ha realizado ninguna acción
+    // en este tile (los _results del padre son datos cacheados y pueden estar desfasados)
+    if (!_loading && !_actionDone) {
+      _localFollowing = widget.isFollowing;
+      _localPending = widget.isPending;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -194,19 +215,55 @@ class _UserTileState extends State<_UserTile> {
                 : ElevatedButton(
                     onPressed: () async {
                       setState(() => _loading = true);
-                      await widget.onFollowChanged();
-                      if (mounted) setState(() => _loading = false);
+                      try {
+                        final uid = widget.currentUid;
+                        final target = widget.user.uid;
+                        if (_localFollowing) {
+                          await ProfileService.instance.unfollow(uid, target);
+                          setState(() { _localFollowing = false; _localPending = false; _actionDone = true; });
+                        } else if (widget.user.isPrivate && _localPending) {
+                          await ProfileService.instance.cancelFollowRequest(uid, target);
+                          setState(() { _localPending = false; _actionDone = true; });
+                        } else if (widget.user.isPrivate) {
+                          await ProfileService.instance.sendFollowRequest(uid, target);
+                          setState(() { _localPending = true; _actionDone = true; });
+                        } else {
+                          if (_localPending) {
+                            await ProfileService.instance.cancelFollowRequest(uid, target);
+                          }
+                          await ProfileService.instance.follow(uid, target);
+                          setState(() { _localFollowing = true; _localPending = false; _actionDone = true; });
+                        }
+                        await widget.onRefresh();
+                      } catch (_) {
+                        // revert local state on error
+                        setState(() {
+                          _localFollowing = widget.isFollowing;
+                          _localPending = widget.isPending;
+                        });
+                      } finally {
+                        if (mounted) setState(() => _loading = false);
+                      }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: widget.isFollowing ? AppColors.bgPage : AppColors.primary,
-                      foregroundColor: widget.isFollowing ? AppColors.textPrimary : Colors.white,
+                      backgroundColor: _localFollowing || (widget.user.isPrivate && _localPending)
+                          ? AppColors.bgPage
+                          : AppColors.primary,
+                      foregroundColor: _localFollowing || (widget.user.isPrivate && _localPending)
+                          ? AppColors.textPrimary
+                          : Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10),
-                          side: widget.isFollowing ? const BorderSide(color: AppColors.border) : BorderSide.none),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          side: _localFollowing || (widget.user.isPrivate && _localPending)
+                              ? const BorderSide(color: AppColors.border)
+                              : BorderSide.none),
                       elevation: 0,
                     ),
-                    child: Text(widget.isFollowing ? 'Siguiendo' : 'Seguir',
-                        style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 12)),
+                    child: Text(
+                      _localFollowing ? 'Siguiendo' : (widget.user.isPrivate && _localPending ? 'Solicitado' : 'Seguir'),
+                      style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 12),
+                    ),
                   ),
           ),
         ]),

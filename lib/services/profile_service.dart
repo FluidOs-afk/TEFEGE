@@ -59,4 +59,34 @@ class ProfileService {
     if (data == null) return false;
     return List<String>.from(data['following'] as List? ?? []).contains(targetUid);
   }
+
+  Future<void> sendFollowRequest(String currentUid, String targetUid) async {
+    await _db.collection('users').doc(targetUid).update({
+      'pendingRequests': FieldValue.arrayUnion([currentUid]),
+    });
+  }
+
+  Future<void> cancelFollowRequest(String currentUid, String targetUid) async {
+    await _db.collection('users').doc(targetUid).update({
+      'pendingRequests': FieldValue.arrayRemove([currentUid]),
+    });
+  }
+
+  Future<void> acceptFollowRequest(String ownerUid, String requesterUid) async {
+    final batch = _db.batch();
+    batch.update(_db.collection('users').doc(ownerUid), {
+      'pendingRequests': FieldValue.arrayRemove([requesterUid]),
+      'followers': FieldValue.arrayUnion([requesterUid]),
+    });
+    batch.update(_db.collection('users').doc(requesterUid), {
+      'following': FieldValue.arrayUnion([ownerUid]),
+    });
+    await batch.commit();
+  }
+
+  Future<void> rejectFollowRequest(String ownerUid, String requesterUid) async {
+    await _db.collection('users').doc(ownerUid).update({
+      'pendingRequests': FieldValue.arrayRemove([requesterUid]),
+    });
+  }
 }

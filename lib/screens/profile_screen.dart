@@ -10,21 +10,51 @@ import '../services/profile_service.dart';
 import '../utils/image_utils.dart';
 import 'create_post_screen.dart';
 import 'edit_profile_screen.dart';
+import 'follow_requests_screen.dart';
+import 'followers_screen.dart';
 import 'post_detail_screen.dart';
 import 'settings_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   final String? userId;
   const ProfileScreen({super.key, this.userId});
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  Stream<UserModel>? _stream;
+  String _targetUid = '';
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final auth = context.read<AuthProvider>();
+    final currentUid = auth.currentUser?.uid ?? '';
+    final newTarget = widget.userId ?? currentUid;
+    if (newTarget != _targetUid && newTarget.isNotEmpty) {
+      _targetUid = newTarget;
+      _stream = ProfileService.instance.streamUser(_targetUid);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final currentUid = context.read<AuthProvider>().currentUser?.uid ?? '';
-    final targetUid = userId ?? currentUid;
+    final auth = context.watch<AuthProvider>();
+    final currentUid = auth.currentUser?.uid ?? '';
+    final targetUid = widget.userId ?? currentUid;
     final isOwn = targetUid == currentUid;
 
+    if (_targetUid.isEmpty) {
+      return const Scaffold(
+        backgroundColor: AppColors.bgPage,
+        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+      );
+    }
+
     return StreamBuilder<UserModel>(
-      stream: ProfileService.instance.streamUser(targetUid),
+      stream: _stream,
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return const Scaffold(
@@ -58,6 +88,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
   bool _followLoading = false;
 
   bool get _isFollowing => widget.user.followers.contains(widget.currentUid);
+  bool get _isPending => widget.user.pendingRequests.contains(widget.currentUid);
 
   Future<void> _toggleFollow() async {
     if (_followLoading) return;
@@ -65,8 +96,27 @@ class _ProfileBodyState extends State<_ProfileBody> {
     try {
       if (_isFollowing) {
         await ProfileService.instance.unfollow(widget.currentUid, widget.user.uid);
+      } else if (widget.user.isPrivate) {
+        if (_isPending) {
+          await ProfileService.instance.cancelFollowRequest(widget.currentUid, widget.user.uid);
+        } else {
+          await ProfileService.instance.sendFollowRequest(widget.currentUid, widget.user.uid);
+        }
       } else {
+        // Perfil público: si hay una solicitud residual la cancelamos antes de seguir
+        if (_isPending) {
+          await ProfileService.instance.cancelFollowRequest(widget.currentUid, widget.user.uid);
+        }
         await ProfileService.instance.follow(widget.currentUid, widget.user.uid);
+      }
+      if (mounted) {
+        await context.read<AuthProvider>().refreshCurrentUser();
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ha ocurrido un error. Inténtalo de nuevo.')),
+        );
       }
     } finally {
       if (mounted) setState(() => _followLoading = false);
@@ -169,14 +219,17 @@ class _ProfileBodyState extends State<_ProfileBody> {
                     : FilledButton(
                         onPressed: _toggleFollow,
                         style: FilledButton.styleFrom(
-                          backgroundColor: _isFollowing ? AppColors.bgCard : AppColors.primary,
-                          foregroundColor: _isFollowing ? AppColors.primary : Colors.white,
+                          backgroundColor: _isFollowing || (widget.user.isPrivate && _isPending) ? AppColors.bgCard : AppColors.primary,
+                          foregroundColor: _isFollowing || (widget.user.isPrivate && _isPending) ? AppColors.primary : Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
-                            side: _isFollowing ? const BorderSide(color: AppColors.primary) : BorderSide.none,
+                            side: _isFollowing || (widget.user.isPrivate && _isPending)
+                                ? const BorderSide(color: AppColors.primary)
+                                : BorderSide.none,
                           ),
                         ),
-                        child: Text(_isFollowing ? 'Siguiendo' : 'Seguir',
+                        child: Text(
+                            _isFollowing ? 'Siguiendo' : (widget.user.isPrivate && _isPending ? 'Solicitado' : 'Seguir'),
                             style: GoogleFonts.dmSans(fontWeight: FontWeight.w600)),
                       ),
             ],
@@ -192,14 +245,60 @@ class _ProfileBodyState extends State<_ProfileBody> {
             Text(widget.user.bio,
                 style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.textSec, height: 1.5)),
           ],
+          if (widget.isOwn && widget.user.pendingRequests.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            GestureDetector(
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => FollowRequestsScreen(owner: widget.user))),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.accentBg,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.person_add_outlined, size: 16, color: AppColors.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${widget.user.pendingRequests.length} solicitud${widget.user.pendingRequests.length == 1 ? '' : 'es'} de seguimiento',
+                    style: GoogleFonts.dmSans(
+                        fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
+                  ),
+                  const Spacer(),
+                  const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.primary),
+                ]),
+              ),
+            ),
+          ],
           const SizedBox(height: 14),
           Row(
             children: [
               Expanded(child: _buildStatStream(widget.user.uid)),
               Container(width: 1, height: 28, color: AppColors.border),
-              Expanded(child: _stat('${widget.user.followers.length}', 'Seguidores')),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => FollowersScreen(
+                            title: 'Seguidores',
+                            uids: widget.user.followers,
+                            currentUid: widget.currentUid,
+                          ))),
+                  child: _stat('${widget.user.followers.length}', 'Seguidores'),
+                ),
+              ),
               Container(width: 1, height: 28, color: AppColors.border),
-              Expanded(child: _stat('${widget.user.following.length}', 'Siguiendo')),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => FollowersScreen(
+                            title: 'Siguiendo',
+                            uids: widget.user.following,
+                            currentUid: widget.currentUid,
+                          ))),
+                  child: _stat('${widget.user.following.length}', 'Siguiendo'),
+                ),
+              ),
             ],
           ),
         ],
@@ -249,13 +348,22 @@ class _ProfileBodyState extends State<_ProfileBody> {
     child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Icon(Icons.lock_outline_rounded, size: 52, color: AppColors.textHint),
+        Icon(
+          _isPending ? Icons.schedule_rounded : Icons.lock_outline_rounded,
+          size: 52,
+          color: AppColors.textHint,
+        ),
         const SizedBox(height: 14),
         Text('Esta cuenta es privada',
             style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 16, color: AppColors.textPrimary)),
         const SizedBox(height: 6),
-        Text('Sigue a este usuario para ver sus publicaciones',
-            style: GoogleFonts.dmSans(color: AppColors.textHint, fontSize: 13)),
+        Text(
+          _isPending
+              ? 'Tu solicitud está pendiente de aprobación'
+              : 'Sigue a este usuario para ver sus publicaciones',
+          style: GoogleFonts.dmSans(color: AppColors.textHint, fontSize: 13),
+          textAlign: TextAlign.center,
+        ),
       ],
     ),
   );

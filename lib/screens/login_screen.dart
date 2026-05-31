@@ -355,47 +355,50 @@ class _LoginScreenState extends State<LoginScreen>
 
                           // Recordarme + Olvidaste contraseña
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              GestureDetector(
-                                onTap: () =>
-                                    setState(() => _rememberMe = !_rememberMe),
-                                child: Row(
-                                  children: [
-                                    AnimatedContainer(
-                                      duration:
-                                          const Duration(milliseconds: 180),
-                                      width: 20,
-                                      height: 20,
-                                      decoration: BoxDecoration(
-                                        color: _rememberMe
-                                            ? AppColors.primary
-                                            : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(5),
-                                        border: Border.all(
+                              Flexible(
+                                child: GestureDetector(
+                                  onTap: () =>
+                                      setState(() => _rememberMe = !_rememberMe),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      AnimatedContainer(
+                                        duration:
+                                            const Duration(milliseconds: 180),
+                                        width: 20,
+                                        height: 20,
+                                        decoration: BoxDecoration(
                                           color: _rememberMe
                                               ? AppColors.primary
-                                              : AppColors.border,
-                                          width: 2,
+                                              : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(5),
+                                          border: Border.all(
+                                            color: _rememberMe
+                                                ? AppColors.primary
+                                                : AppColors.border,
+                                            width: 2,
+                                          ),
+                                        ),
+                                        child: _rememberMe
+                                            ? const Icon(Icons.check_rounded,
+                                                size: 13, color: Colors.white)
+                                            : null,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Recordarme',
+                                        style: GoogleFonts.dmSans(
+                                          fontSize: 13,
+                                          color: AppColors.textSec,
+                                          fontWeight: FontWeight.w500,
                                         ),
                                       ),
-                                      child: _rememberMe
-                                          ? const Icon(Icons.check_rounded,
-                                              size: 13, color: Colors.white)
-                                          : null,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Recordarme',
-                                      style: GoogleFonts.dmSans(
-                                        fontSize: 13,
-                                        color: AppColors.textSec,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
-                              const Spacer(),
                               TextButton(
                                 onPressed: _forgotPassword,
                                 style: TextButton.styleFrom(

@@ -186,6 +186,18 @@ class OutfyApp extends StatelessWidget {
           shape: StadiumBorder(),
         ),
       ),
+      builder: (context, child) {
+        final media = MediaQuery.of(context);
+        return MediaQuery(
+          data: media.copyWith(
+            textScaler: media.textScaler.clamp(
+              minScaleFactor: 0.85,
+              maxScaleFactor: 1.1,
+            ),
+          ),
+          child: child!,
+        );
+      },
       home: const SplashScreen(),
     );
   }
