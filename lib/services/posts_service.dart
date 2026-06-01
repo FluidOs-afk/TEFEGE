@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/post_model.dart';
+import '../models/user_model.dart';
 import '../models/user_post.dart';
 import '../utils/image_utils.dart';
+import 'notifications_service.dart';
 
 class PostsService {
   static final PostsService instance = PostsService._();
@@ -50,9 +52,11 @@ class PostsService {
     final ref = _db.collection('posts').doc(postId);
     final doc = await ref.get();
     if (!doc.exists) return;
-    final likedBy = List<String>.from(
-        (doc.data() as Map<String, dynamic>)['likedBy'] as List? ?? []);
-    if (likedBy.contains(uid)) {
+    final data = doc.data() as Map<String, dynamic>;
+    final likedBy = List<String>.from(data['likedBy'] as List? ?? []);
+    final wasLiked = likedBy.contains(uid);
+
+    if (wasLiked) {
       await ref.update({
         'likedBy': FieldValue.arrayRemove([uid]),
         'likes': FieldValue.increment(-1),
@@ -62,11 +66,47 @@ class PostsService {
         'likedBy': FieldValue.arrayUnion([uid]),
         'likes': FieldValue.increment(1),
       });
+      // Notificar al dueño del post
+      final postOwnerId = data['userId'] as String? ?? '';
+      if (postOwnerId.isNotEmpty) {
+        final currentUserDoc = await _db.collection('users').doc(uid).get();
+        final currentUser = UserModel.fromFirestore(currentUserDoc);
+        NotificationsService.instance.createNotification(
+          toUid: postOwnerId,
+          fromUid: uid,
+          fromUsername: currentUser.username,
+          fromAvatarBase64: currentUser.avatarBase64,
+          type: 'like',
+          postId: postId,
+          postTitle: data['title'] as String? ?? '',
+        );
+      }
     }
   }
 
   Future<void> addComment(String postId, CommentModel comment) async {
+    final postDoc = await _db.collection('posts').doc(postId).get();
     await _db.collection('posts').doc(postId).collection('comments').add(comment.toFirestore());
+
+    // Notificar al dueño del post
+    if (postDoc.exists) {
+      final postData = postDoc.data() as Map<String, dynamic>;
+      final postOwnerId = postData['userId'] as String? ?? '';
+      if (postOwnerId.isNotEmpty) {
+        final currentUserDoc = await _db.collection('users').doc(comment.userId).get();
+        final currentUser = UserModel.fromFirestore(currentUserDoc);
+        NotificationsService.instance.createNotification(
+          toUid: postOwnerId,
+          fromUid: comment.userId,
+          fromUsername: currentUser.username,
+          fromAvatarBase64: currentUser.avatarBase64,
+          type: 'comment',
+          postId: postId,
+          postTitle: postData['title'] as String? ?? '',
+          text: comment.text,
+        );
+      }
+    }
   }
 
   Stream<List<CommentModel>> streamComments(String postId) {

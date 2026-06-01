@@ -58,17 +58,25 @@ dev_dependencies:
   flutter_native_splash: ^2.4.0
 
 flutter_launcher_icons:
-  android: true
+  android: "launcher_icon"
   ios: true
-  image_path: "assets/icon/icon.png"
-  adaptive_icon_background: "#1B6B44"
-  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+  image_path: "assets/icon/outfy_icon.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#7C3AED"
+  adaptive_icon_foreground: "assets/icon/outfy_icon.png"
+  web:
+    generate: false
 
 flutter_native_splash:
   color: "#1B6B44"
-  image: assets/icon/splash_logo.png
+  image: assets/icon/outfy_icon.png
+  color_dark: "#0D0918"
+  image_dark: assets/icon/outfy_icon.png
   android: true
   ios: true
+  android_12:
+    image: assets/icon/outfy_icon.png
+    color: "#7C3AED"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -85,6 +93,7 @@ flutter:
     - .env
     - assets/docs/terminos-de-uso.md
     - assets/docs/politica-de-privacidad.md
+    - assets/icon/outfy_icon.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

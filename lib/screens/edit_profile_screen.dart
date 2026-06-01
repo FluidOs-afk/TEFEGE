@@ -6,6 +6,7 @@ import '../main.dart' show AppColors;
 import '../providers/auth_provider.dart';
 import '../services/profile_service.dart';
 import '../utils/image_utils.dart';
+import '../widgets/avatar_with_frame.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -23,6 +24,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _saving = false;
   XFile? _newAvatarFile;
   String _currentAvatarBase64 = '';
+  String _frameStyle = 'none';
 
   @override
   void initState() {
@@ -33,6 +35,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _bioCtrl = TextEditingController(text: user?.bio ?? '');
     _isPrivate = user?.isPrivate ?? false;
     _currentAvatarBase64 = user?.avatarBase64 ?? '';
+    _frameStyle = user?.frameStyle ?? 'none';
   }
 
   @override
@@ -120,6 +123,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'username': username,
         'bio': bio,
         'isPrivate': _isPrivate,
+        'frameStyle': _frameStyle,
       });
       await auth.refreshCurrentUser();
       if (mounted) Navigator.of(context).pop();
@@ -134,6 +138,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(msg, style: GoogleFonts.dmSans())),
     );
+  }
+
+  String get _previewInitials {
+    final text = _nombreCtrl.text;
+    final parts = text.trim().split(' ');
+    if (parts.length >= 2 && parts[1].isNotEmpty) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    return text.isNotEmpty ? text[0].toUpperCase() : '?';
   }
 
   @override
@@ -162,7 +173,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               child: GestureDetector(
                 onTap: _pickAvatar,
                 child: Stack(children: [
-                  _buildAvatar(),
+                  _newAvatarFile != null
+                      ? _FileAvatarPreview(file: _newAvatarFile!, frameStyle: _frameStyle, radius: 48)
+                      : AvatarWithFrame(
+                          base64: _currentAvatarBase64.isNotEmpty ? _currentAvatarBase64 : null,
+                          frameStyle: _frameStyle,
+                          radius: 48,
+                          initials: _previewInitials,
+                        ),
                   Positioned(right: 0, bottom: 0,
                     child: Container(
                       width: 30, height: 30,
@@ -174,7 +192,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ]),
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
+
+            _label('Marco de perfil'),
+            const SizedBox(height: 10),
+            _FrameSelector(
+              selected: _frameStyle,
+              onChanged: (v) => setState(() => _frameStyle = v),
+            ),
+            const SizedBox(height: 24),
 
             _label('Nombre completo'),
             const SizedBox(height: 6),
@@ -225,34 +251,143 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildAvatar() {
-    const size = 96.0;
-    if (_newAvatarFile != null) {
-      return ClipOval(child: SizedBox(width: size, height: size,
-          child: ImageUtils.imageWidgetFromXFile(_newAvatarFile!)));
-    }
-    if (_currentAvatarBase64.isNotEmpty) {
-      return ClipOval(child: SizedBox(width: size, height: size,
-          child: ImageUtils.imageFromBase64(_currentAvatarBase64)));
-    }
-    return _initials(size);
-  }
-
-  Widget _initials(double size) {
-    final text = _nombreCtrl.text;
-    final parts = text.trim().split(' ');
-    final ini = parts.length >= 2 && parts[1].isNotEmpty
-        ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
-        : text.isNotEmpty ? text[0].toUpperCase() : '?';
-    return Container(
-      width: size, height: size,
-      decoration: const BoxDecoration(shape: BoxShape.circle,
-          gradient: LinearGradient(colors: [AppColors.primary, AppColors.primaryLight])),
-      child: Center(child: Text(ini,
-          style: GoogleFonts.dmSans(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800))),
-    );
-  }
-
   Widget _label(String text) => Text(text,
       style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textSec, letterSpacing: 0.5));
+}
+
+// Avatar preview cuando el usuario ha seleccionado un nuevo XFile
+class _FileAvatarPreview extends StatelessWidget {
+  final XFile file;
+  final String frameStyle;
+  final double radius;
+  const _FileAvatarPreview({required this.file, required this.frameStyle, required this.radius});
+
+  Widget _applyFrame(Widget inner) {
+    switch (frameStyle) {
+      case 'green':
+        return Container(
+          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.primary, width: 3)),
+          child: inner,
+        );
+      case 'gradient':
+        return Container(
+          decoration: const BoxDecoration(shape: BoxShape.circle,
+              gradient: LinearGradient(colors: [AppColors.primary, AppColors.primaryLight], begin: Alignment.topLeft, end: Alignment.bottomRight)),
+          padding: const EdgeInsets.all(3),
+          child: inner,
+        );
+      case 'gold':
+        return Container(
+          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFFFFD700), width: 3)),
+          child: inner,
+        );
+      default:
+        return inner;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final inner = ClipOval(
+      child: SizedBox(
+        width: radius * 2,
+        height: radius * 2,
+        child: ImageUtils.imageWidgetFromXFile(file),
+      ),
+    );
+    return _applyFrame(inner);
+  }
+}
+
+// ── Selector de marcos ─────────────────────────────────────────────────────────
+class _FrameSelector extends StatelessWidget {
+  final String selected;
+  final ValueChanged<String> onChanged;
+
+  const _FrameSelector({required this.selected, required this.onChanged});
+
+  static const _options = [
+    ('none', 'Sin marco'),
+    ('green', 'Verde'),
+    ('gradient', 'Degradado'),
+    ('gold', 'Dorado'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: _options.map((opt) {
+        final (value, label) = opt;
+        final isSelected = selected == value;
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => onChanged(value),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.accentBg : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isSelected ? AppColors.primary : AppColors.border,
+                  width: isSelected ? 2 : 1,
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _FramePreview(frameStyle: value),
+                  const SizedBox(height: 6),
+                  Text(label,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.dmSans(
+                        fontSize: 10,
+                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                        color: isSelected ? AppColors.primary : AppColors.textSec,
+                      )),
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _FramePreview extends StatelessWidget {
+  final String frameStyle;
+  const _FramePreview({required this.frameStyle});
+
+  @override
+  Widget build(BuildContext context) {
+    const r = 18.0;
+    final inner = CircleAvatar(
+      radius: r,
+      backgroundColor: AppColors.accentBg,
+      child: const Icon(Icons.person_rounded, size: r, color: AppColors.primaryMed),
+    );
+    switch (frameStyle) {
+      case 'green':
+        return Container(
+          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.primary, width: 3)),
+          child: inner,
+        );
+      case 'gradient':
+        return Container(
+          decoration: const BoxDecoration(shape: BoxShape.circle,
+              gradient: LinearGradient(colors: [AppColors.primary, AppColors.primaryLight], begin: Alignment.topLeft, end: Alignment.bottomRight)),
+          padding: const EdgeInsets.all(3),
+          child: inner,
+        );
+      case 'gold':
+        return Container(
+          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFFFFD700), width: 3)),
+          child: inner,
+        );
+      default:
+        return inner;
+    }
+  }
 }

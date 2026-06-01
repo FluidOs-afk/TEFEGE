@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,7 +9,9 @@ import '../models/post_model.dart';
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
 import '../services/profile_service.dart';
-import '../utils/image_utils.dart';
+import '../widgets/avatar_with_frame.dart';
+import '../services/messages_service.dart';
+import 'chat_screen.dart';
 import 'create_post_screen.dart';
 import 'edit_profile_screen.dart';
 import 'follow_requests_screen.dart';
@@ -23,9 +27,13 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
+// ─── Mismo patrón que PostDetailScreen: StreamSubscription + estado local.
+// Evita que cada actualización de Firestore (follow, bio, avatar…) cree un
+// Scaffold nuevo desde cero y provoque el flash blanco.
 class _ProfileScreenState extends State<ProfileScreen> {
-  Stream<UserModel>? _stream;
+  UserModel? _user;
   String _targetUid = '';
+  StreamSubscription<UserModel>? _userSub;
 
   @override
   void didChangeDependencies() {
@@ -35,42 +43,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final newTarget = widget.userId ?? currentUid;
     if (newTarget != _targetUid && newTarget.isNotEmpty) {
       _targetUid = newTarget;
-      _stream = ProfileService.instance.streamUser(_targetUid);
+      _userSub?.cancel();
+      _user = null; // muestra loading solo al cambiar de perfil
+      _userSub = ProfileService.instance.streamUser(_targetUid).listen((u) {
+        if (mounted) setState(() => _user = u);
+      });
     }
+  }
+
+  @override
+  void dispose() {
+    _userSub?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final currentUid = auth.currentUser?.uid ?? '';
-    final targetUid = widget.userId ?? currentUid;
-    final isOwn = targetUid == currentUid;
+    final isOwn = (widget.userId ?? currentUid) == currentUid;
 
-    if (_targetUid.isEmpty) {
+    // Loading solo en carga inicial (hasta que llega el primer snapshot)
+    if (_user == null) {
       return const Scaffold(
-        backgroundColor: AppColors.bgPage,
         body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
       );
     }
 
-    return StreamBuilder<UserModel>(
-      stream: _stream,
-      builder: (context, snap) {
-        if (snap.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            backgroundColor: AppColors.bgPage,
-            body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
-          );
-        }
-        if (!snap.hasData) {
-          return const Scaffold(
-            backgroundColor: AppColors.bgPage,
-            body: Center(child: Text('Usuario no encontrado')),
-          );
-        }
-        return _ProfileBody(user: snap.data!, currentUid: currentUid, isOwn: isOwn);
-      },
-    );
+    // _ProfileBody retorna un Scaffold estable; setState solo reconstruye
+    // los widgets internos que dependen de _user
+    return _ProfileBody(user: _user!, currentUid: currentUid, isOwn: isOwn);
   }
 }
 
@@ -103,7 +105,6 @@ class _ProfileBodyState extends State<_ProfileBody> {
           await ProfileService.instance.sendFollowRequest(widget.currentUid, widget.user.uid);
         }
       } else {
-        // Perfil público: si hay una solicitud residual la cancelamos antes de seguir
         if (_isPending) {
           await ProfileService.instance.cancelFollowRequest(widget.currentUid, widget.user.uid);
         }
@@ -121,6 +122,59 @@ class _ProfileBodyState extends State<_ProfileBody> {
     } finally {
       if (mounted) setState(() => _followLoading = false);
     }
+  }
+
+  Future<void> _openChat(BuildContext context) async {
+    final convId = await MessagesService.instance.getOrCreateConversation(
+        widget.currentUid, widget.user.uid);
+    if (!context.mounted) return;
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => ChatScreen(
+        convId: convId,
+        otherUid: widget.user.uid,
+        otherName: widget.user.nombre,
+        otherUsername: widget.user.username,
+        otherAvatarBase64: widget.user.avatarBase64.isNotEmpty ? widget.user.avatarBase64 : null,
+        otherFrameStyle: widget.user.frameStyle,
+      ),
+    ));
+  }
+
+  void _showAvatarDialog(BuildContext context) {
+    final base64 = widget.user.avatarBase64;
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            CircleAvatar(
+              radius: 110,
+              backgroundColor: AppColors.accentBg,
+              backgroundImage: base64.isNotEmpty
+                  ? MemoryImage(base64Decode(base64))
+                  : null,
+              child: base64.isEmpty
+                  ? const Icon(Icons.person_rounded, size: 80, color: AppColors.primaryMed)
+                  : null,
+            ),
+            Positioned(
+              top: 0, right: 0,
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                  child: const Icon(Icons.close, size: 18, color: AppColors.textPrimary),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -201,7 +255,13 @@ class _ProfileBodyState extends State<_ProfileBody> {
         children: [
           Row(
             children: [
-              _buildAvatar(widget.user),
+              AvatarWithFrame(
+                base64: widget.user.avatarBase64.isNotEmpty ? widget.user.avatarBase64 : null,
+                frameStyle: widget.user.frameStyle,
+                radius: 36,
+                initials: widget.user.initials,
+                onTap: () => _showAvatarDialog(context),
+              ),
               const Spacer(),
               if (widget.isOwn)
                 OutlinedButton(
@@ -213,25 +273,40 @@ class _ProfileBodyState extends State<_ProfileBody> {
                   child: Text('Editar perfil', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600)),
                 )
               else
-                _followLoading
-                    ? const SizedBox(width: 24, height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))
-                    : FilledButton(
-                        onPressed: _toggleFollow,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: _isFollowing || (widget.user.isPrivate && _isPending) ? AppColors.bgCard : AppColors.primary,
-                          foregroundColor: _isFollowing || (widget.user.isPrivate && _isPending) ? AppColors.primary : Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            side: _isFollowing || (widget.user.isPrivate && _isPending)
-                                ? const BorderSide(color: AppColors.primary)
-                                : BorderSide.none,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _followLoading
+                        ? const SizedBox(width: 24, height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))
+                        : FilledButton(
+                            onPressed: _toggleFollow,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: _isFollowing || (widget.user.isPrivate && _isPending) ? AppColors.bgCard : AppColors.primary,
+                              foregroundColor: _isFollowing || (widget.user.isPrivate && _isPending) ? AppColors.primary : Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                side: _isFollowing || (widget.user.isPrivate && _isPending)
+                                    ? const BorderSide(color: AppColors.primary)
+                                    : BorderSide.none,
+                              ),
+                            ),
+                            child: Text(
+                                _isFollowing ? 'Siguiendo' : (widget.user.isPrivate && _isPending ? 'Solicitado' : 'Seguir'),
+                                style: GoogleFonts.dmSans(fontWeight: FontWeight.w600)),
                           ),
-                        ),
-                        child: Text(
-                            _isFollowing ? 'Siguiendo' : (widget.user.isPrivate && _isPending ? 'Solicitado' : 'Seguir'),
-                            style: GoogleFonts.dmSans(fontWeight: FontWeight.w600)),
+                    const SizedBox(width: 8),
+                    OutlinedButton(
+                      onPressed: () => _openChat(context),
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        minimumSize: Size.zero,
                       ),
+                      child: const Icon(Icons.mail_outline_rounded, size: 18),
+                    ),
+                  ],
+                ),
             ],
           ),
           const SizedBox(height: 12),
@@ -325,25 +400,6 @@ class _ProfileBodyState extends State<_ProfileBody> {
     ],
   );
 
-  Widget _buildAvatar(UserModel user) {
-    const size = 72.0;
-    if (user.avatarBase64.isNotEmpty) {
-      return ClipOval(child: SizedBox(width: size, height: size,
-          child: ImageUtils.imageFromBase64(user.avatarBase64)));
-    }
-    return _avatarFallback(user, size);
-  }
-
-  Widget _avatarFallback(UserModel user, double size) => Container(
-    width: size, height: size,
-    decoration: const BoxDecoration(
-      shape: BoxShape.circle,
-      gradient: LinearGradient(colors: [AppColors.primary, AppColors.primaryLight]),
-    ),
-    child: Center(child: Text(user.initials,
-        style: GoogleFonts.dmSans(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800))),
-  );
-
   Widget _buildPrivateState() => Center(
     child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -419,7 +475,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
         fit: StackFit.expand,
         children: [
           post.imageBase64.isNotEmpty
-              ? ImageUtils.imageFromBase64(post.imageBase64)
+              ? Image.memory(base64Decode(post.imageBase64), fit: BoxFit.cover)
               : Container(color: AppColors.accentBg,
                   child: const Icon(Icons.checkroom_outlined, color: AppColors.textHint)),
           Positioned(

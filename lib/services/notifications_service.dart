@@ -13,14 +13,8 @@ class NotificationsService {
 
   Future<void> init(GlobalKey<ScaffoldMessengerState> messengerKey) async {
     if (kIsWeb) return;
-
     try {
-      await _messaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
-
+      await _messaging.requestPermission(alert: true, badge: true, sound: true);
       FirebaseMessaging.onMessage.listen((message) {
         final notification = message.notification;
         if (notification != null) {
@@ -45,5 +39,78 @@ class NotificationsService {
         await _db.collection('users').doc(uid).update({'fcmToken': token});
       }
     } catch (_) {}
+  }
+
+  // ── Notificaciones in-app ─────────────────────────────────────────────────
+
+  Future<void> createNotification({
+    required String toUid,
+    required String fromUid,
+    required String fromUsername,
+    required String? fromAvatarBase64,
+    required String type,
+    String? postId,
+    String? postTitle,
+    String? text,
+  }) async {
+    if (toUid == fromUid) return;
+    try {
+      await _db.collection('notifications').add({
+        'toUid': toUid,
+        'fromUid': fromUid,
+        'fromUsername': fromUsername,
+        'fromAvatarBase64': fromAvatarBase64 ?? '',
+        'type': type,
+        'postId': postId,
+        'postTitle': postTitle,
+        'text': text,
+        'read': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {}
+  }
+
+  Stream<QuerySnapshot> streamNotifications(String uid) {
+    return _db
+        .collection('notifications')
+        .where('toUid', isEqualTo: uid)
+        .orderBy('createdAt', descending: true)
+        .limit(50)
+        .snapshots();
+  }
+
+  Stream<int> streamUnreadCount(String uid) {
+    return _db
+        .collection('notifications')
+        .where('toUid', isEqualTo: uid)
+        .where('read', isEqualTo: false)
+        .snapshots()
+        .map((s) => s.docs.length);
+  }
+
+  Future<void> markAllAsRead(String uid) async {
+    final snap = await _db
+        .collection('notifications')
+        .where('toUid', isEqualTo: uid)
+        .where('read', isEqualTo: false)
+        .get();
+    if (snap.docs.isEmpty) return;
+    final batch = _db.batch();
+    for (final doc in snap.docs) {
+      batch.update(doc.reference, {'read': true});
+    }
+    await batch.commit();
+  }
+
+  String getNotificationText(Map<String, dynamic> data) {
+    final from = data['fromUsername'] as String? ?? 'Alguien';
+    return switch (data['type']) {
+      'like'          => '$from le ha dado like a tu publicación "${data['postTitle'] ?? ''}"',
+      'comment'       => '$from comentó en tu publicación: "${data['text'] ?? ''}"',
+      'follow'        => '$from ha empezado a seguirte',
+      'follow_accept' => '$from ha aceptado tu solicitud de seguimiento',
+      'message'       => '$from te ha enviado un mensaje: "${data['text'] ?? ''}"',
+      _               => '$from interactuó contigo',
+    };
   }
 }

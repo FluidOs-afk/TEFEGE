@@ -271,8 +271,8 @@ class _ItemFormSheetState extends State<_ItemFormSheet> {
   @override
   void initState() {
     super.initState();
-    _nombreCtrl = TextEditingController(text: widget.prefillCode ?? '');
-    _marcaCtrl = TextEditingController(text: widget.prefillCode ?? '');
+    _nombreCtrl = TextEditingController(text: '');
+    _marcaCtrl = TextEditingController(text: '');
   }
 
   @override
@@ -292,7 +292,9 @@ class _ItemFormSheetState extends State<_ItemFormSheet> {
     try {
       final item = WardrobeItem(
         id: '', name: nombre, brand: _marcaCtrl.text.trim(),
-        category: _categoria, color: _colorCtrl.text.trim(), createdAt: DateTime.now(),
+        category: _categoria, color: _colorCtrl.text.trim(),
+        barcodeValue: widget.prefillCode ?? '',
+        createdAt: DateTime.now(),
       );
       await WardrobeService.instance.addItem(widget.uid, item, widget.imageFile);
       if (mounted) Navigator.of(context).pop();
@@ -319,7 +321,13 @@ class _ItemFormSheetState extends State<_ItemFormSheet> {
             const SizedBox(height: 16),
             Text(widget.prefillCode != null ? 'Confirmar prenda escaneada' : 'Nueva prenda',
                 style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 16),
+            if (widget.prefillCode != null) ...[
+              const SizedBox(height: 6),
+              Text('Código escaneado: ${widget.prefillCode}',
+                  style: GoogleFonts.dmSans(fontSize: 12, color: AppColors.textHint)),
+              const SizedBox(height: 10),
+            ] else
+              const SizedBox(height: 16),
             if (widget.imageFile != null) ...[
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),

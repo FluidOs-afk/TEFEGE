@@ -4,14 +4,20 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import '../main.dart' show AppColors;
+import '../main.dart' show AppColors, AppColorsExt;
 import '../models/post_model.dart';
+import '../models/story_model.dart';
 import '../providers/auth_provider.dart';
 import '../services/posts_service.dart';
+import '../services/stories_service.dart';
 import '../utils/image_utils.dart';
-import '../widgets/fashion_icon.dart';
+import '../widgets/avatar_with_frame.dart';
+import '../widgets/share_sheet.dart';
+import 'messages_list_screen.dart';
+import 'notifications_screen.dart';
 import 'post_detail_screen.dart';
 import 'profile_screen.dart';
+import 'story_viewer_screen.dart';
 import 'user_search_screen.dart';
 
 String _timeAgo(DateTime dt) {
@@ -37,16 +43,7 @@ class FeedScreen extends StatefulWidget {
 
 class _FeedScreenState extends State<FeedScreen> {
   int _limit = 10;
-  bool _hasUnread = true;
   final _picker = ImagePicker();
-
-  final List<_Story> _stories = [
-    _Story(label: 'sofia.s',   color: const Color(0xFF1B6B44), initial: 'S', hasNew: true,  title: 'Cápsula oficina',    detail: 'Blazer, denim recto y mocasín.',        category: FashionCategory.tops),
-    _Story(label: 'marta.f',   color: const Color(0xFF8E44AD), initial: 'M', hasNew: true,  title: 'Paleta pastel',      detail: 'Coral suave con lavanda y plata.',      category: FashionCategory.pants),
-    _Story(label: 'lucia.v',   color: const Color(0xFF9A6B4F), initial: 'L', hasNew: false, title: 'Hallazgo vintage',   detail: 'Abrigo de lana y bolso estructurado.',  category: FashionCategory.coat),
-    _Story(label: 'andrea.g',  color: const Color(0xFF455A64), initial: 'A', hasNew: true,  title: 'Noche satinada',     detail: 'Texturas brillantes con sandalias.',     category: FashionCategory.dress),
-    _Story(label: 'carmen.b',  color: const Color(0xFF00838F), initial: 'C', hasNew: false, title: 'Azules limpios',     detail: 'Camisa abierta y pantalón amplio.',     category: FashionCategory.accessory),
-  ];
 
   void _loadMore() => setState(() => _limit += 10);
 
@@ -55,21 +52,22 @@ class _FeedScreenState extends State<FeedScreen> {
     final auth = context.watch<AuthProvider>();
     final currentUid = auth.currentUser?.uid ?? '';
     final following = auth.currentUser?.following ?? [];
+    final bgCard = context.colBgCard;
 
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
       body: RefreshIndicator(
         color: AppColors.primary,
         onRefresh: () async {
           setState(() => _limit = 10);
-          await Future.delayed(const Duration(milliseconds: 400));
+          await Future.delayed(const Duration(milliseconds: 300));
         },
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
+            // ── AppBar ──────────────────────────────────────────────────────
             SliverAppBar(
               floating: true, snap: true,
-              backgroundColor: AppColors.bgCard,
+              backgroundColor: bgCard,
               elevation: 0,
               scrolledUnderElevation: 0.3,
               surfaceTintColor: Colors.transparent,
@@ -84,97 +82,60 @@ class _FeedScreenState extends State<FeedScreen> {
               ),
               actions: [
                 IconButton(
-                  onPressed: () {
-                    setState(() => _hasUnread = false);
-                    _showNotifications(context);
-                  },
-                  icon: Stack(clipBehavior: Clip.none, children: [
-                    const Icon(Icons.notifications_outlined, color: AppColors.textPrimary, size: 22),
-                    if (_hasUnread)
-                      Positioned(right: 1, top: 1,
-                          child: Container(width: 8, height: 8,
-                              decoration: const BoxDecoration(color: AppColors.primaryMed, shape: BoxShape.circle))),
-                  ]),
+                  onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const MessagesListScreen())),
+                  icon: Icon(Icons.mail_outline_rounded, color: context.colText, size: 22),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const NotificationsScreen())),
+                  icon: Icon(Icons.notifications_none_rounded, color: context.colText, size: 22),
                 ),
                 IconButton(
                   onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const UserSearchScreen())),
-                  icon: const Icon(Icons.search_rounded, color: AppColors.textPrimary, size: 22),
+                  icon: Icon(Icons.search_rounded, color: context.colText, size: 22),
                 ),
                 const SizedBox(width: 4),
               ],
             ),
+
+            // ── Historias ───────────────────────────────────────────────────
             SliverToBoxAdapter(
               child: Container(
-                color: AppColors.bgCard,
+                color: bgCard,
                 padding: const EdgeInsets.only(bottom: 12, top: 6),
                 child: SizedBox(
                   height: 100,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: _stories.length + 1,
-                    itemBuilder: (_, index) {
-                      if (index == 0) return _buildMyStory(context, auth);
-                      return _buildStoryItem(index - 1);
+                  child: StreamBuilder<List<StoryModel>>(
+                    stream: currentUid.isNotEmpty
+                        ? StoriesService.instance.streamActiveStories()
+                        : const Stream.empty(),
+                    builder: (context, snap) {
+                      final stories = snap.data ?? [];
+                      return ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: stories.length + 1,
+                        itemBuilder: (_, index) {
+                          if (index == 0) return _buildMyStory(context, auth, stories, currentUid);
+                          final story = stories[index - 1];
+                          return _buildStoryBubble(context, story, currentUid);
+                        },
+                      );
                     },
                   ),
                 ),
               ),
             ),
-            const SliverToBoxAdapter(child: Divider(height: 1, color: AppColors.border)),
-            SliverToBoxAdapter(
-              child: StreamBuilder<List<PostModel>>(
-                stream: currentUid.isNotEmpty
-                    ? PostsService.instance.streamFeedPosts(currentUid, following, limit: _limit)
-                    : const Stream.empty(),
-                builder: (context, snap) {
-                  if (snap.connectionState == ConnectionState.waiting) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 40),
-                      child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
-                    );
-                  }
-                  final posts = snap.data ?? [];
-                  if (following.isEmpty) {
-                    return _EmptyFeed(
-                      icon: Icons.people_outline_rounded,
-                      title: 'Empieza a seguir usuarios',
-                      subtitle: 'Busca usuarios en el buscador y sigue a quienes te inspiren',
-                      onAction: () => Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const UserSearchScreen())),
-                      actionLabel: 'Buscar usuarios',
-                    );
-                  }
-                  if (posts.isEmpty) {
-                    return const _EmptyFeed(
-                      icon: Icons.photo_outlined,
-                      title: 'Aún no hay publicaciones',
-                      subtitle: 'Las personas que sigues aún no han publicado nada',
-                    );
-                  }
-                  return Column(
-                    children: [
-                      ...posts.map((post) => _PostCard(
-                            key: ValueKey(post.id),
-                            post: post,
-                            currentUid: currentUid,
-                          )),
-                      if (posts.length >= _limit)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          child: TextButton.icon(
-                            onPressed: _loadMore,
-                            icon: const Icon(Icons.expand_more_rounded),
-                            label: Text('Ver más', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
-                            style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-                          ),
-                        ),
-                      const SizedBox(height: 20),
-                    ],
-                  );
-                },
-              ),
+            const SliverToBoxAdapter(child: Divider(height: 1)),
+
+            // ── Posts como SliverList para evitar flash ─────────────────────
+            _PostsSliver(
+              currentUid: currentUid,
+              following: following,
+              limit: _limit,
+              onLoadMore: _loadMore,
             ),
           ],
         ),
@@ -182,34 +143,41 @@ class _FeedScreenState extends State<FeedScreen> {
     );
   }
 
-  Widget _buildMyStory(BuildContext context, AuthProvider auth) {
+  Widget _buildMyStory(BuildContext context, AuthProvider auth,
+      List<StoryModel> stories, String currentUid) {
     final user = auth.currentUser;
+    final myStory = stories.where((s) => s.userId == currentUid).firstOrNull;
+    final hasStory = myStory != null;
     final initial = user?.nombre.isNotEmpty == true ? user!.nombre[0].toUpperCase() : '+';
+
     return GestureDetector(
-      onTap: () => _showCreateStory(context),
-      child: _StoryBubble(initial: initial, label: 'Tu historia', color: AppColors.primaryMed, hasNew: false, isMe: true),
+      onTap: hasStory
+          ? () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => StoryViewerScreen(story: myStory, currentUid: currentUid)))
+          : () => _showCreateStory(context),
+      child: _StoryBubble(
+        initial: hasStory ? initial : '+',
+        label: 'Tu historia',
+        avatarBase64: user?.avatarBase64,
+        frameStyle: user?.frameStyle ?? 'none',
+        hasNew: hasStory,
+        isMe: true,
+      ),
     );
   }
 
-  Widget _buildStoryItem(int index) {
-    final story = _stories[index];
+  Widget _buildStoryBubble(BuildContext context, StoryModel story, String currentUid) {
+    final isViewed = story.isViewedBy(currentUid);
+    final label = story.username.length > 8 ? '${story.username.substring(0, 7)}…' : story.username;
     return GestureDetector(
-      onTap: () async {
-        await Navigator.of(context).push(PageRouteBuilder<void>(
-          opaque: false,
-          barrierColor: Colors.black,
-          pageBuilder: (_, __, ___) => _StoryViewer(
-            stories: _stories,
-            initialIndex: index,
-            onViewed: (i) { if (mounted) setState(() { _stories[i] = _stories[i].copyWith(hasNew: false); }); },
-          ),
-        ));
-      },
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => StoryViewerScreen(story: story, currentUid: currentUid))),
       child: _StoryBubble(
-        initial: story.initial,
-        label: story.label.length > 8 ? '${story.label.substring(0, 7)}…' : story.label,
-        color: story.color,
-        hasNew: story.hasNew,
+        initial: story.username.isNotEmpty ? story.username[0].toUpperCase() : '?',
+        label: label,
+        avatarBase64: story.avatarBase64,
+        frameStyle: story.frameStyle ?? 'none',
+        hasNew: !isViewed,
         isMe: false,
       ),
     );
@@ -227,11 +195,12 @@ class _FeedScreenState extends State<FeedScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)))),
+                Center(child: Container(width: 40, height: 4,
+                    decoration: BoxDecoration(color: context.colBorder, borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 18),
-                Text('Crear historia', style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w800)),
+                Text('Crear historia', style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w800, color: context.colText)),
                 const SizedBox(height: 6),
-                Text('Muestra tu outfit del día en una historia.', style: GoogleFonts.dmSans(color: AppColors.textSec, fontSize: 13)),
+                Text('Muestra tu outfit del día en una historia.', style: GoogleFonts.dmSans(color: context.colTextSec, fontSize: 13)),
                 const SizedBox(height: 16),
                 Row(children: [
                   Expanded(child: _sourceOption(context, Icons.camera_alt_outlined, 'Cámara', ImageSource.camera)),
@@ -251,11 +220,15 @@ class _FeedScreenState extends State<FeedScreen> {
       onTap: () { Navigator.pop(ctx); _pickStoryImage(source); },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 18),
-        decoration: BoxDecoration(color: AppColors.bgPage, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+        decoration: BoxDecoration(
+          color: ctx.colBgPage,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: ctx.colBorder),
+        ),
         child: Column(children: [
           Icon(icon, color: AppColors.primary, size: 26),
           const SizedBox(height: 8),
-          Text(label, style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 13)),
+          Text(label, style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 13, color: ctx.colText)),
         ]),
       ),
     );
@@ -264,42 +237,157 @@ class _FeedScreenState extends State<FeedScreen> {
   Future<void> _pickStoryImage(ImageSource source) async {
     final image = await _picker.pickImage(source: source, imageQuality: 86, maxWidth: 1400);
     if (image == null || !mounted) return;
-    final bytes = await image.readAsBytes();
-    if (!mounted) return;
     final auth = context.read<AuthProvider>();
     final user = auth.currentUser;
-    setState(() {
-      _stories.insert(0, _Story(
-        label: user?.username ?? 'tu.look',
-        color: AppColors.primary,
-        initial: user?.nombre.isNotEmpty == true ? user!.nombre[0].toUpperCase() : 'T',
-        hasNew: true,
-        title: source == ImageSource.camera ? 'Foto nueva' : 'Desde galería',
-        detail: 'Historia creada en esta sesión.',
-        category: FashionCategory.tops,
-        imageBytes: bytes,
-      ));
-    });
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Historia creada')));
+    if (user == null) return;
+    try {
+      await StoriesService.instance.createStory(user.uid, user, image);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Historia publicada')));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error al publicar la historia')));
+      }
+    }
+  }
+}
+
+// ── Posts: StatefulWidget con stream estable para evitar el flash blanco ────────
+//
+// IMPORTANTE: _PostsSliver debe ser StatefulWidget.
+// Si fuera StatelessWidget, cada rebuild de FeedScreen (por AuthProvider.notifyListeners)
+// crearía un NUEVO objeto stream → StreamBuilder resetea a ConnectionState.waiting → flash.
+// Al guardar el stream en estado y solo recrearlo cuando cambian uid/following/limit,
+// StreamBuilder mantiene la suscripción existente y no parpadea.
+class _PostsSliver extends StatefulWidget {
+  final String currentUid;
+  final List<String> following;
+  final int limit;
+  final VoidCallback onLoadMore;
+
+  const _PostsSliver({
+    required this.currentUid,
+    required this.following,
+    required this.limit,
+    required this.onLoadMore,
+  });
+
+  @override
+  State<_PostsSliver> createState() => _PostsSliverState();
+}
+
+class _PostsSliverState extends State<_PostsSliver> {
+  Stream<List<PostModel>>? _stream;
+
+  @override
+  void initState() {
+    super.initState();
+    _rebuildStream();
+  }
+
+  @override
+  void didUpdateWidget(_PostsSliver old) {
+    super.didUpdateWidget(old);
+    // Solo recrear el stream si los parámetros realmente cambiaron
+    if (old.currentUid != widget.currentUid ||
+        old.limit != widget.limit ||
+        !_sameList(old.following, widget.following)) {
+      _rebuildStream();
     }
   }
 
-  void _showNotifications(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _BottomSheet(
-        child: DraggableScrollableSheet(
-          initialChildSize: 0.5, minChildSize: 0.3, maxChildSize: 0.85, expand: false,
-          builder: (_, ctrl) => _NotificationsSheet(controller: ctrl),
-        ),
-      ),
+  bool _sameList(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  void _rebuildStream() {
+    _stream = widget.currentUid.isNotEmpty
+        ? PostsService.instance.streamFeedPosts(
+            widget.currentUid, widget.following, limit: widget.limit)
+        : const Stream.empty();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<PostModel>>(
+      stream: _stream,
+      builder: (context, snap) {
+        // Solo mostrar loading si NO tenemos datos previos
+        if (!snap.hasData && snap.connectionState == ConnectionState.waiting) {
+          return const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 48),
+              child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+            ),
+          );
+        }
+
+        final posts = snap.data ?? [];
+
+        if (widget.following.isEmpty) {
+          return SliverToBoxAdapter(
+            child: _EmptyFeed(
+              icon: Icons.people_outline_rounded,
+              title: 'Empieza a seguir usuarios',
+              subtitle: 'Busca usuarios en el buscador y sigue a quienes te inspiren',
+              onAction: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const UserSearchScreen())),
+              actionLabel: 'Buscar usuarios',
+            ),
+          );
+        }
+
+        if (posts.isEmpty) {
+          return const SliverToBoxAdapter(
+            child: _EmptyFeed(
+              icon: Icons.photo_outlined,
+              title: 'Aún no hay publicaciones',
+              subtitle: 'Las personas que sigues aún no han publicado nada',
+            ),
+          );
+        }
+
+        return SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, i) {
+              if (i == posts.length) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Center(
+                    child: TextButton.icon(
+                      onPressed: widget.onLoadMore,
+                      icon: const Icon(Icons.expand_more_rounded),
+                      label: Text('Ver más', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
+                      style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+                    ),
+                  ),
+                );
+              }
+              if (i == posts.length + 1) {
+                return const SizedBox(height: 20);
+              }
+              return RepaintBoundary(
+                child: _PostCard(
+                  key: ValueKey(posts[i].id),
+                  post: posts[i],
+                  currentUid: widget.currentUid,
+                ),
+              );
+            },
+            childCount: posts.length < widget.limit ? posts.length + 1 : posts.length + 2,
+          ),
+        );
+      },
     );
   }
 }
 
+// ── PostCard ───────────────────────────────────────────────────────────────────
 class _PostCard extends StatefulWidget {
   final PostModel post;
   final String currentUid;
@@ -339,11 +427,27 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
     if (mounted) setState(() => _likeLoading = false);
   }
 
+  void _showShareSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ShareSheet(
+        postId: widget.post.id,
+        postTitle: widget.post.title,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final post = widget.post;
+    final bgCard = context.colBgCard;
+    final textPrimary = context.colText;
+    final textSec = context.colTextSec;
+    final textHint = context.colTextHint;
+
     return Container(
-      color: AppColors.bgCard,
+      color: bgCard,
       margin: const EdgeInsets.only(bottom: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -355,7 +459,12 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
                 GestureDetector(
                   onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => ProfileScreen(userId: post.userId))),
-                  child: _Avatar(base64: post.userAvatarBase64, name: post.username),
+                  child: AvatarWithFrame(
+                    base64: post.userAvatarBase64.isNotEmpty ? post.userAvatarBase64 : null,
+                    frameStyle: 'none',
+                    radius: 22,
+                    initials: post.username.isNotEmpty ? post.username[0].toUpperCase() : '?',
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -364,15 +473,15 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
                         MaterialPageRoute(builder: (_) => ProfileScreen(userId: post.userId))),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(post.username,
-                          style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.textPrimary)),
+                          style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 14, color: textPrimary)),
                       Text(_timeAgo(post.createdAt),
-                          style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint)),
+                          style: GoogleFonts.dmSans(fontSize: 11, color: textHint)),
                     ]),
                   ),
                 ),
                 IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.more_horiz, color: AppColors.textHint, size: 20),
+                  onPressed: () => _showShareSheet(context),
+                  icon: Icon(Icons.more_horiz, color: textHint, size: 20),
                 ),
               ],
             ),
@@ -424,22 +533,19 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
               children: [
                 _ActionBtn(
                   icon: _isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                  color: _isLiked ? const Color(0xFFE74C3C) : AppColors.textPrimary,
+                  color: _isLiked ? const Color(0xFFE74C3C) : textPrimary,
                   onTap: _handleLike,
                 ),
                 _ActionBtn(
                   icon: Icons.chat_bubble_outline_rounded,
-                  color: AppColors.textPrimary,
+                  color: textPrimary,
                   onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => PostDetailScreen(postId: post.id))),
                 ),
                 _ActionBtn(
                   icon: Icons.near_me_outlined,
-                  color: AppColors.textPrimary,
-                  onTap: () {
-                    Clipboard.setData(ClipboardData(text: 'outfy://post/${post.id}'));
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enlace copiado')));
-                  },
+                  color: textPrimary,
+                  onTap: () => _showShareSheet(context),
                 ),
               ],
             ),
@@ -450,14 +556,14 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('${_fmtCount(post.likes)} me gusta',
-                    style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.textPrimary)),
+                    style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 13, color: textPrimary)),
                 if (post.description.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   RichText(text: TextSpan(children: [
                     TextSpan(text: '${post.username}  ',
-                        style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.textPrimary)),
+                        style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 13, color: textPrimary)),
                     TextSpan(text: post.description,
-                        style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.textSec, height: 1.45)),
+                        style: GoogleFonts.dmSans(fontSize: 13, color: textSec, height: 1.45)),
                   ])),
                 ],
                 if (post.tags.isNotEmpty) ...[
@@ -477,36 +583,7 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
   }
 }
 
-class _Avatar extends StatelessWidget {
-  final String base64;
-  final String name;
-  const _Avatar({required this.base64, required this.name});
-
-  @override
-  Widget build(BuildContext context) {
-    const size = 44.0;
-    return Container(
-      width: size, height: size,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(colors: [AppColors.primary, AppColors.primaryLight]),
-      ),
-      padding: const EdgeInsets.all(2),
-      child: ClipOval(
-        child: base64.isNotEmpty
-            ? ImageUtils.imageFromBase64(base64, placeholder: _fallback())
-            : _fallback(),
-      ),
-    );
-  }
-
-  Widget _fallback() => CircleAvatar(
-    backgroundColor: AppColors.primaryMed,
-    child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?',
-        style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
-  );
-}
-
+// ── Widgets de apoyo ───────────────────────────────────────────────────────────
 class _EmptyFeed extends StatelessWidget {
   final IconData icon;
   final String title, subtitle;
@@ -519,87 +596,15 @@ class _EmptyFeed extends StatelessWidget {
     padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 32),
     child: Column(
       children: [
-        Icon(icon, size: 56, color: AppColors.textHint),
+        Icon(icon, size: 56, color: context.colTextHint),
         const SizedBox(height: 16),
-        Text(title, style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 16, color: AppColors.textPrimary), textAlign: TextAlign.center),
+        Text(title, style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 16, color: context.colText), textAlign: TextAlign.center),
         const SizedBox(height: 6),
-        Text(subtitle, style: GoogleFonts.dmSans(color: AppColors.textHint, fontSize: 13), textAlign: TextAlign.center),
+        Text(subtitle, style: GoogleFonts.dmSans(color: context.colTextHint, fontSize: 13), textAlign: TextAlign.center),
         if (onAction != null) ...[const SizedBox(height: 20), ElevatedButton(onPressed: onAction, child: Text(actionLabel ?? ''))],
       ],
     ),
   );
-}
-
-class _NotificationsSheet extends StatefulWidget {
-  final ScrollController controller;
-  const _NotificationsSheet({required this.controller});
-  @override
-  State<_NotificationsSheet> createState() => _NotificationsSheetState();
-}
-
-class _NotificationsSheetState extends State<_NotificationsSheet> {
-  final _items = [
-    _NotifItem('Un usuario', 'le dio like a tu outfit', '2 min', Icons.favorite_rounded, AppColors.primaryMed),
-    _NotifItem('Un usuario', 'comentó tu publicación', '15 min', Icons.chat_bubble_rounded, Color(0xFF8E44AD)),
-    _NotifItem('Un usuario', 'empezó a seguirte', '1 h', Icons.person_add_rounded, Color(0xFF00838F)),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-          child: Column(children: [
-            _Handle(),
-            const SizedBox(height: 12),
-            Row(children: [
-              Expanded(child: Text('Notificaciones', style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w800))),
-              TextButton(
-                  onPressed: () => setState(() => _items.clear()),
-                  child: Text('Limpiar', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700))),
-            ]),
-          ]),
-        ),
-        const Divider(height: 1),
-        Expanded(
-          child: _items.isEmpty
-              ? Center(child: Text('Todo al día', style: GoogleFonts.dmSans(color: AppColors.textHint)))
-              : ListView.builder(
-                  controller: widget.controller,
-                  itemCount: _items.length,
-                  itemBuilder: (_, i) {
-                    final item = _items[i];
-                    return Dismissible(
-                      key: ValueKey('${item.user}-$i'),
-                      direction: DismissDirection.endToStart,
-                      background: Container(color: Colors.red, alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 20),
-                          child: const Icon(Icons.delete_outline, color: Colors.white)),
-                      onDismissed: (_) => setState(() => _items.removeAt(i)),
-                      child: ListTile(
-                        leading: Container(width: 42, height: 42,
-                            decoration: BoxDecoration(color: item.color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                            child: Icon(item.icon, color: item.color, size: 20)),
-                        title: RichText(text: TextSpan(children: [
-                          TextSpan(text: '${item.user}  ', style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, color: AppColors.textPrimary, fontSize: 13)),
-                          TextSpan(text: item.text, style: GoogleFonts.dmSans(color: AppColors.textSec, fontSize: 13)),
-                        ])),
-                        trailing: Text(item.time, style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint)),
-                      ),
-                    );
-                  }),
-        ),
-      ],
-    );
-  }
-}
-
-class _NotifItem {
-  final String user, text, time;
-  final IconData icon;
-  final Color color;
-  const _NotifItem(this.user, this.text, this.time, this.icon, this.color);
 }
 
 class _ActionBtn extends StatelessWidget {
@@ -614,56 +619,28 @@ class _ActionBtn extends StatelessWidget {
   );
 }
 
-class _Handle extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) => Center(child: Container(width: 40, height: 4,
-      decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2))));
-}
-
 class _BottomSheet extends StatelessWidget {
   final Widget child;
   const _BottomSheet({required this.child});
   @override
   Widget build(BuildContext context) => Container(
-    decoration: const BoxDecoration(color: AppColors.bgCard, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    decoration: BoxDecoration(color: context.colBgCard, borderRadius: const BorderRadius.vertical(top: Radius.circular(24))),
     clipBehavior: Clip.hardEdge, child: child,
   );
 }
 
 // ── Stories ────────────────────────────────────────────────────────────────────
-
-class _Story {
-  final String label;
-  final String initial;
-  final Color color;
-  final bool hasNew;
-  final String title;
-  final String detail;
-  final FashionCategory category;
-  final Uint8List? imageBytes;
-
-  const _Story({
-    required this.label, required this.color, required this.initial,
-    required this.hasNew, required this.title, required this.detail,
-    required this.category, this.imageBytes,
-  });
-
-  _Story copyWith({bool? hasNew}) => _Story(
-    label: label, color: color, initial: initial,
-    hasNew: hasNew ?? this.hasNew, title: title, detail: detail,
-    category: category, imageBytes: imageBytes,
-  );
-}
-
 class _StoryBubble extends StatelessWidget {
   final String initial;
   final String label;
-  final Color color;
+  final String? avatarBase64;
+  final String frameStyle;
   final bool hasNew;
   final bool isMe;
 
   const _StoryBubble({
-    required this.initial, required this.label, required this.color,
+    required this.initial, required this.label,
+    this.avatarBase64, required this.frameStyle,
     required this.hasNew, required this.isMe,
   });
 
@@ -681,19 +658,22 @@ class _StoryBubble extends StatelessWidget {
             gradient: hasNew
                 ? const LinearGradient(colors: [AppColors.primary, AppColors.primaryLight], begin: Alignment.topLeft, end: Alignment.bottomRight)
                 : null,
-            color: hasNew ? null : AppColors.border,
+            color: hasNew ? null : context.colBorder,
           ),
           padding: const EdgeInsets.all(2.5),
           child: Container(
-            decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.bgCard),
+            decoration: BoxDecoration(shape: BoxShape.circle, color: context.colBgCard),
             padding: const EdgeInsets.all(2),
-            child: isMe
+            child: isMe && (avatarBase64 == null || avatarBase64!.isEmpty)
                 ? Container(
-                    decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.accentBg),
+                    decoration: BoxDecoration(shape: BoxShape.circle, color: context.colAccentBg),
                     child: const Icon(Icons.add_rounded, color: AppColors.primary, size: 26))
-                : CircleAvatar(
-                    backgroundColor: color,
-                    child: Text(initial, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18))),
+                : AvatarWithFrame(
+                    base64: avatarBase64,
+                    frameStyle: 'none',
+                    radius: 28,
+                    initials: initial,
+                  ),
           ),
         ),
         const SizedBox(height: 6),
@@ -701,152 +681,9 @@ class _StoryBubble extends StatelessWidget {
             style: GoogleFonts.dmSans(
               fontSize: 10,
               fontWeight: hasNew ? FontWeight.w700 : FontWeight.w500,
-              color: hasNew ? AppColors.textPrimary : AppColors.textHint,
+              color: hasNew ? context.colText : context.colTextHint,
             )),
       ]),
-    );
-  }
-}
-
-class _StoryViewer extends StatefulWidget {
-  final List<_Story> stories;
-  final int initialIndex;
-  final ValueChanged<int> onViewed;
-
-  const _StoryViewer({required this.stories, required this.initialIndex, required this.onViewed});
-
-  @override
-  State<_StoryViewer> createState() => _StoryViewerState();
-}
-
-class _StoryViewerState extends State<_StoryViewer> {
-  late final PageController _ctrl;
-  late int _index;
-  Timer? _timer;
-  double _progress = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _index = widget.initialIndex;
-    _ctrl = PageController(initialPage: _index);
-    WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) widget.onViewed(_index); });
-    _startTimer();
-  }
-
-  @override
-  void dispose() { _timer?.cancel(); _ctrl.dispose(); super.dispose(); }
-
-  void _startTimer() {
-    _timer?.cancel(); _progress = 0;
-    _timer = Timer.periodic(const Duration(milliseconds: 80), (t) {
-      if (!mounted) return;
-      setState(() => _progress = (_progress + 0.02).clamp(0, 1));
-      if (_progress >= 1) _next();
-    });
-  }
-
-  void _next() {
-    if (_index == widget.stories.length - 1) { Navigator.pop(context); return; }
-    _ctrl.nextPage(duration: const Duration(milliseconds: 240), curve: Curves.easeOut);
-  }
-
-  void _prev() {
-    if (_index == 0) { _startTimer(); return; }
-    _ctrl.previousPage(duration: const Duration(milliseconds: 240), curve: Curves.easeOut);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Stack(children: [
-          PageView.builder(
-            controller: _ctrl,
-            itemCount: widget.stories.length,
-            onPageChanged: (v) { setState(() => _index = v); widget.onViewed(v); _startTimer(); },
-            itemBuilder: (_, i) => _StoryPage(story: widget.stories[i]),
-          ),
-          Positioned(
-            top: 10, left: 10, right: 10,
-            child: Row(
-              children: List.generate(widget.stories.length, (i) {
-                final val = i < _index ? 1.0 : (i == _index ? _progress : 0.0);
-                return Expanded(child: Container(
-                  height: 3, margin: const EdgeInsets.symmetric(horizontal: 2),
-                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.28), borderRadius: BorderRadius.circular(8)),
-                  child: FractionallySizedBox(
-                    alignment: Alignment.centerLeft, widthFactor: val,
-                    child: Container(decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8))),
-                  ),
-                ));
-              }),
-            ),
-          ),
-          Positioned.fill(
-            top: 112,
-            child: Row(children: [
-              Expanded(child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: _prev)),
-              Expanded(child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: _next)),
-            ]),
-          ),
-          Positioned(top: 24, right: 8,
-              child: IconButton(onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close_rounded, color: Colors.white))),
-        ]),
-      ),
-    );
-  }
-}
-
-class _StoryPage extends StatelessWidget {
-  final _Story story;
-  const _StoryPage({required this.story});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [story.color, Color.lerp(story.color, Colors.black, 0.52)!],
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(22, 58, 22, 28),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(mainAxisSize: MainAxisSize.min, children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: Colors.white.withValues(alpha: 0.18),
-              child: Text(story.initial, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800)),
-            ),
-            const SizedBox(width: 10),
-            Text(story.label, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)),
-          ]),
-          const Spacer(),
-          Center(
-            child: story.imageBytes == null
-                ? Container(
-                    width: 210, height: 210,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.12), shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
-                    ),
-                    child: Center(child: FashionIcon(category: story.category, color: Colors.white, size: 112, strokeWidth: 2.5)),
-                  )
-                : ClipRRect(
-                    borderRadius: BorderRadius.circular(22),
-                    child: Image.memory(story.imageBytes!, width: double.infinity,
-                        height: MediaQuery.of(context).size.height * 0.52, fit: BoxFit.cover)),
-          ),
-          const Spacer(),
-          Text(story.title, style: GoogleFonts.playfairDisplay(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w800, height: 1.05)),
-          const SizedBox(height: 10),
-          Text(story.detail, style: GoogleFonts.dmSans(color: Colors.white.withValues(alpha: 0.86), fontSize: 15, height: 1.35)),
-        ]),
-      ),
     );
   }
 }

@@ -6,6 +6,7 @@ class UserModel {
   final String username;
   final String bio;
   final String avatarBase64;
+  final String frameStyle; // 'none', 'green', 'gradient', 'gold'
   final bool isPrivate;
   final List<String> followers;
   final List<String> following;
@@ -19,6 +20,7 @@ class UserModel {
     required this.username,
     this.bio = '',
     this.avatarBase64 = '',
+    this.frameStyle = 'none',
     this.isPrivate = false,
     this.followers = const [],
     this.following = const [],
@@ -43,6 +45,7 @@ class UserModel {
       username: data['username'] as String? ?? '',
       bio: data['bio'] as String? ?? '',
       avatarBase64: data['avatarBase64'] as String? ?? '',
+      frameStyle: data['frameStyle'] as String? ?? 'none',
       isPrivate: data['isPrivate'] as bool? ?? false,
       followers: List<String>.from(data['followers'] as List? ?? []),
       following: List<String>.from(data['following'] as List? ?? []),
@@ -57,6 +60,7 @@ class UserModel {
         'username': username,
         'bio': bio,
         'avatarBase64': avatarBase64,
+        'frameStyle': frameStyle,
         'isPrivate': isPrivate,
         'followers': followers,
         'following': following,
@@ -71,6 +75,7 @@ class UserModel {
     String? username,
     String? bio,
     String? avatarBase64,
+    String? frameStyle,
     bool? isPrivate,
     List<String>? followers,
     List<String>? following,
@@ -84,6 +89,7 @@ class UserModel {
         username: username ?? this.username,
         bio: bio ?? this.bio,
         avatarBase64: avatarBase64 ?? this.avatarBase64,
+        frameStyle: frameStyle ?? this.frameStyle,
         isPrivate: isPrivate ?? this.isPrivate,
         followers: followers ?? this.followers,
         following: following ?? this.following,

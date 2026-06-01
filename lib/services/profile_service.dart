@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/user_model.dart';
 import '../utils/image_utils.dart';
+import 'notifications_service.dart';
 
 class ProfileService {
   static final ProfileService instance = ProfileService._();
@@ -40,6 +41,16 @@ class ProfileService {
       'followers': FieldValue.arrayUnion([currentUid]),
     });
     await batch.commit();
+
+    final currentUserDoc = await _db.collection('users').doc(currentUid).get();
+    final currentUser = UserModel.fromFirestore(currentUserDoc);
+    NotificationsService.instance.createNotification(
+      toUid: targetUid,
+      fromUid: currentUid,
+      fromUsername: currentUser.username,
+      fromAvatarBase64: currentUser.avatarBase64,
+      type: 'follow',
+    );
   }
 
   Future<void> unfollow(String currentUid, String targetUid) async {
@@ -82,6 +93,16 @@ class ProfileService {
       'following': FieldValue.arrayUnion([ownerUid]),
     });
     await batch.commit();
+
+    final ownerDoc = await _db.collection('users').doc(ownerUid).get();
+    final ownerUser = UserModel.fromFirestore(ownerDoc);
+    NotificationsService.instance.createNotification(
+      toUid: requesterUid,
+      fromUid: ownerUid,
+      fromUsername: ownerUser.username,
+      fromAvatarBase64: ownerUser.avatarBase64,
+      type: 'follow_accept',
+    );
   }
 
   Future<void> rejectFollowRequest(String ownerUid, String requesterUid) async {
