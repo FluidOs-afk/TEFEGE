@@ -8,6 +8,7 @@ import '../models/wardrobe_item.dart';
 import '../providers/auth_provider.dart';
 import '../services/posts_service.dart';
 import '../services/wardrobe_service.dart';
+import '../utils/content_filter.dart';
 import '../utils/image_utils.dart';
 
 class CreatePostScreen extends StatefulWidget {
@@ -64,6 +65,32 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     final title = _titleCtrl.text.trim();
     if (title.isEmpty) { _snack('El título es obligatorio'); return; }
     if (_imageFile == null) { _snack('Selecciona una imagen para la publicación'); return; }
+
+    // Filtro de lenguaje en la descripción
+    final description = _descCtrl.text.trim();
+    if (ContentFilter.containsProfanity(description)) {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text('Contenido inapropiado',
+              style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
+          content: Text(
+            'La descripción contiene lenguaje inapropiado. Por favor, modifícala antes de publicar.',
+            style: GoogleFonts.dmSans(color: AppColors.textSec),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text('Editar',
+                  style: GoogleFonts.dmSans(
+                      color: AppColors.primary, fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
 
     final auth = context.read<AuthProvider>();
     final user = auth.currentUser;

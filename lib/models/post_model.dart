@@ -13,6 +13,7 @@ class PostModel {
   final List<String> wardrobeItems;
   final int likes;
   final List<String> likedBy;
+  final int commentCount;
   final DateTime createdAt;
 
   const PostModel({
@@ -28,6 +29,7 @@ class PostModel {
     this.wardrobeItems = const [],
     this.likes = 0,
     this.likedBy = const [],
+    this.commentCount = 0,
     required this.createdAt,
   });
 
@@ -48,6 +50,7 @@ class PostModel {
       wardrobeItems: List<String>.from(data['wardrobeItems'] as List? ?? []),
       likes: data['likes'] as int? ?? 0,
       likedBy: List<String>.from(data['likedBy'] as List? ?? []),
+      commentCount: data['commentCount'] as int? ?? 0,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -64,6 +67,7 @@ class PostModel {
         'wardrobeItems': wardrobeItems,
         'likes': likes,
         'likedBy': likedBy,
+        'commentCount': commentCount,
         'createdAt': FieldValue.serverTimestamp(),
       };
 
@@ -80,6 +84,7 @@ class PostModel {
     List<String>? wardrobeItems,
     int? likes,
     List<String>? likedBy,
+    int? commentCount,
     DateTime? createdAt,
   }) =>
       PostModel(
@@ -95,6 +100,7 @@ class PostModel {
         wardrobeItems: wardrobeItems ?? this.wardrobeItems,
         likes: likes ?? this.likes,
         likedBy: likedBy ?? this.likedBy,
+        commentCount: commentCount ?? this.commentCount,
         createdAt: createdAt ?? this.createdAt,
       );
 }

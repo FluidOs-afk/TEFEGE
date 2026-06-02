@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../main.dart' show AppColors, MainScreen;
 import '../providers/auth_provider.dart';
 import '../widgets/auth_widgets.dart';
+import '../widgets/outfy_logo.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -209,10 +210,7 @@ class _LoginScreenState extends State<LoginScreen>
             child: Column(
               children: [
                 Container(
-                  width: 72,
-                  height: 72,
                   decoration: BoxDecoration(
-                    color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
@@ -222,12 +220,9 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
                     ],
                   ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.checkroom_rounded,
-                      size: 36,
-                      color: AppColors.primary,
-                    ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: const OutfyLogo(size: 72),
                   ),
                 ),
                 const SizedBox(height: 14),

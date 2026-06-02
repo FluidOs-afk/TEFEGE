@@ -66,7 +66,6 @@ class PostsService {
         'likedBy': FieldValue.arrayUnion([uid]),
         'likes': FieldValue.increment(1),
       });
-      // Notificar al dueño del post
       final postOwnerId = data['userId'] as String? ?? '';
       if (postOwnerId.isNotEmpty) {
         final currentUserDoc = await _db.collection('users').doc(uid).get();
@@ -85,15 +84,17 @@ class PostsService {
   }
 
   Future<void> addComment(String postId, CommentModel comment) async {
-    final postDoc = await _db.collection('posts').doc(postId).get();
-    await _db.collection('posts').doc(postId).collection('comments').add(comment.toFirestore());
+    final postRef = _db.collection('posts').doc(postId);
+    final postDoc = await postRef.get();
+    await postRef.collection('comments').add(comment.toFirestore());
+    await postRef.update({'commentCount': FieldValue.increment(1)});
 
-    // Notificar al dueño del post
     if (postDoc.exists) {
       final postData = postDoc.data() as Map<String, dynamic>;
       final postOwnerId = postData['userId'] as String? ?? '';
       if (postOwnerId.isNotEmpty) {
-        final currentUserDoc = await _db.collection('users').doc(comment.userId).get();
+        final currentUserDoc =
+            await _db.collection('users').doc(comment.userId).get();
         final currentUser = UserModel.fromFirestore(currentUserDoc);
         NotificationsService.instance.createNotification(
           toUid: postOwnerId,
@@ -107,6 +108,18 @@ class PostsService {
         );
       }
     }
+  }
+
+  Future<void> deleteComment(String postId, String commentId) async {
+    await _db
+        .collection('posts')
+        .doc(postId)
+        .collection('comments')
+        .doc(commentId)
+        .delete();
+    await _db.collection('posts').doc(postId).update({
+      'commentCount': FieldValue.increment(-1),
+    });
   }
 
   Stream<List<CommentModel>> streamComments(String postId) {

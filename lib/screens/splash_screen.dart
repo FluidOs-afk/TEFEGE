@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../main.dart' show AppColors, MainScreen;
 import '../providers/auth_provider.dart';
+import '../widgets/outfy_logo.dart';
 import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -230,10 +231,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   Widget _buildLogoIcon() {
     return Container(
-      width: 108,
-      height: 108,
       decoration: BoxDecoration(
-        color: Colors.white,
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
@@ -248,12 +246,9 @@ class _SplashScreenState extends State<SplashScreen>
           ),
         ],
       ),
-      child: const Center(
-        child: Icon(
-          Icons.checkroom_rounded,
-          size: 54,
-          color: AppColors.primary,
-        ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(30),
+        child: const OutfyLogo(size: 108),
       ),
     );
   }

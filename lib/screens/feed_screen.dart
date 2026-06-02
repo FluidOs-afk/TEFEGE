@@ -6,12 +6,15 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../main.dart' show AppColors, AppColorsExt;
 import '../models/post_model.dart';
+import '../models/report_model.dart';
 import '../models/story_model.dart';
 import '../providers/auth_provider.dart';
 import '../services/posts_service.dart';
 import '../services/stories_service.dart';
 import '../utils/image_utils.dart';
 import '../widgets/avatar_with_frame.dart';
+import '../widgets/feed_skeleton_item.dart';
+import '../widgets/report_sheet.dart';
 import '../widgets/share_sheet.dart';
 import 'messages_list_screen.dart';
 import 'notifications_screen.dart';
@@ -118,9 +121,12 @@ class _FeedScreenState extends State<FeedScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         itemCount: stories.length + 1,
                         itemBuilder: (_, index) {
-                          if (index == 0) return _buildMyStory(context, auth, stories, currentUid);
-                          final story = stories[index - 1];
-                          return _buildStoryBubble(context, story, currentUid);
+                          if (index == 0) {
+                            return _buildMyStory(context, auth, stories, currentUid);
+                          }
+                          final storyIndex = index - 1;
+                          return _buildStoryBubble(
+                              context, stories[storyIndex], stories, storyIndex, currentUid);
                         },
                       );
                     },
@@ -130,7 +136,7 @@ class _FeedScreenState extends State<FeedScreen> {
             ),
             const SliverToBoxAdapter(child: Divider(height: 1)),
 
-            // ── Posts como SliverList para evitar flash ─────────────────────
+            // ── Posts ────────────────────────────────────────────────────────
             _PostsSliver(
               currentUid: currentUid,
               following: following,
@@ -146,14 +152,18 @@ class _FeedScreenState extends State<FeedScreen> {
   Widget _buildMyStory(BuildContext context, AuthProvider auth,
       List<StoryModel> stories, String currentUid) {
     final user = auth.currentUser;
-    final myStory = stories.where((s) => s.userId == currentUid).firstOrNull;
-    final hasStory = myStory != null;
+    final myStoryIndex = stories.indexWhere((s) => s.userId == currentUid);
+    final hasStory = myStoryIndex >= 0;
     final initial = user?.nombre.isNotEmpty == true ? user!.nombre[0].toUpperCase() : '+';
 
     return GestureDetector(
       onTap: hasStory
           ? () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => StoryViewerScreen(story: myStory, currentUid: currentUid)))
+              builder: (_) => StoryViewerScreen(
+                    stories: stories,
+                    startIndex: myStoryIndex,
+                    currentUid: currentUid,
+                  )))
           : () => _showCreateStory(context),
       child: _StoryBubble(
         initial: hasStory ? initial : '+',
@@ -166,12 +176,19 @@ class _FeedScreenState extends State<FeedScreen> {
     );
   }
 
-  Widget _buildStoryBubble(BuildContext context, StoryModel story, String currentUid) {
+  Widget _buildStoryBubble(BuildContext context, StoryModel story,
+      List<StoryModel> allStories, int storyIndex, String currentUid) {
     final isViewed = story.isViewedBy(currentUid);
-    final label = story.username.length > 8 ? '${story.username.substring(0, 7)}…' : story.username;
+    final label = story.username.length > 8
+        ? '${story.username.substring(0, 7)}…'
+        : story.username;
     return GestureDetector(
       onTap: () => Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => StoryViewerScreen(story: story, currentUid: currentUid))),
+          builder: (_) => StoryViewerScreen(
+                stories: allStories,
+                startIndex: storyIndex,
+                currentUid: currentUid,
+              ))),
       child: _StoryBubble(
         initial: story.username.isNotEmpty ? story.username[0].toUpperCase() : '?',
         label: label,
@@ -254,12 +271,6 @@ class _FeedScreenState extends State<FeedScreen> {
 }
 
 // ── Posts: StatefulWidget con stream estable para evitar el flash blanco ────────
-//
-// IMPORTANTE: _PostsSliver debe ser StatefulWidget.
-// Si fuera StatelessWidget, cada rebuild de FeedScreen (por AuthProvider.notifyListeners)
-// crearía un NUEVO objeto stream → StreamBuilder resetea a ConnectionState.waiting → flash.
-// Al guardar el stream en estado y solo recrearlo cuando cambian uid/following/limit,
-// StreamBuilder mantiene la suscripción existente y no parpadea.
 class _PostsSliver extends StatefulWidget {
   final String currentUid;
   final List<String> following;
@@ -289,7 +300,6 @@ class _PostsSliverState extends State<_PostsSliver> {
   @override
   void didUpdateWidget(_PostsSliver old) {
     super.didUpdateWidget(old);
-    // Solo recrear el stream si los parámetros realmente cambiaron
     if (old.currentUid != widget.currentUid ||
         old.limit != widget.limit ||
         !_sameList(old.following, widget.following)) {
@@ -317,12 +327,12 @@ class _PostsSliverState extends State<_PostsSliver> {
     return StreamBuilder<List<PostModel>>(
       stream: _stream,
       builder: (context, snap) {
-        // Solo mostrar loading si NO tenemos datos previos
+        // Skeleton mientras carga por primera vez
         if (!snap.hasData && snap.connectionState == ConnectionState.waiting) {
-          return const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 48),
-              child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+          return SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (_, __) => const FeedSkeletonItem(),
+              childCount: 3,
             ),
           );
         }
@@ -420,7 +430,7 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
 
   Future<void> _handleLike() async {
     if (_likeLoading) return;
-    HapticFeedback.selectionClick();
+    HapticFeedback.lightImpact();
     _heartCtrl.forward(from: 0);
     setState(() => _likeLoading = true);
     await PostsService.instance.toggleLike(widget.post.id, widget.currentUid);
@@ -437,6 +447,60 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
       ),
     );
   }
+
+  void _showPostMenu(BuildContext context) {
+    final post = widget.post;
+    final currentUid = widget.currentUid;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _BottomSheet(
+        child: SafeArea(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const SizedBox(height: 8),
+            Center(child: Container(width: 40, height: 4,
+                decoration: BoxDecoration(
+                    color: context.colBorder,
+                    borderRadius: BorderRadius.circular(2)))),
+            const SizedBox(height: 6),
+            ListTile(
+              leading: _menuIcon(Icons.near_me_outlined),
+              title: Text('Compartir',
+                  style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, color: context.colText)),
+              onTap: () {
+                Navigator.pop(context);
+                _showShareSheet(context);
+              },
+            ),
+            if (post.userId != currentUid)
+              ListTile(
+                leading: _menuIcon(Icons.flag_outlined, color: Colors.orange),
+                title: Text('Denunciar publicación',
+                    style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, color: Colors.orange)),
+                onTap: () {
+                  Navigator.pop(context);
+                  showReportSheet(
+                    context,
+                    reporterId: currentUid,
+                    targetId: post.id,
+                    targetType: ReportTargetType.post,
+                  );
+                },
+              ),
+            const SizedBox(height: 8),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _menuIcon(IconData icon, {Color color = AppColors.primary}) => Container(
+    width: 36, height: 36,
+    decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10)),
+    child: Icon(icon, color: color, size: 18),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -480,7 +544,7 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
                   ),
                 ),
                 IconButton(
-                  onPressed: () => _showShareSheet(context),
+                  onPressed: () => _showPostMenu(context),
                   icon: Icon(Icons.more_horiz, color: textHint, size: 20),
                 ),
               ],
@@ -511,10 +575,11 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
                         style: GoogleFonts.playfairDisplay(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
                   ),
                 ),
+                // Animación de corazón en doble tap
                 Center(
                   child: AnimatedBuilder(
                     animation: _heartCtrl,
-                    builder: (_, _) {
+                    builder: (_, child) {
                       if (_heartCtrl.value == 0 || _heartCtrl.value == 1) return const SizedBox.shrink();
                       return Transform.scale(
                         scale: _heartScale.value,
@@ -555,8 +620,15 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('${_fmtCount(post.likes)} me gusta',
-                    style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 13, color: textPrimary)),
+                Row(children: [
+                  Text('${_fmtCount(post.likes)} me gusta',
+                      style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 13, color: textPrimary)),
+                  if (post.commentCount > 0) ...[
+                    const SizedBox(width: 10),
+                    Text('${_fmtCount(post.commentCount)} comentarios',
+                        style: GoogleFonts.dmSans(fontSize: 13, color: textSec)),
+                  ],
+                ]),
                 if (post.description.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   RichText(text: TextSpan(children: [
@@ -656,7 +728,9 @@ class _StoryBubble extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: hasNew
-                ? const LinearGradient(colors: [AppColors.primary, AppColors.primaryLight], begin: Alignment.topLeft, end: Alignment.bottomRight)
+                ? const LinearGradient(
+                    colors: [AppColors.primary, AppColors.primaryLight],
+                    begin: Alignment.topLeft, end: Alignment.bottomRight)
                 : null,
             color: hasNew ? null : context.colBorder,
           ),
