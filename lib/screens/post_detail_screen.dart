@@ -71,15 +71,20 @@ class _PostDetailScreenState extends State<PostDetailScreen>
         .snapshots()
         .listen((doc) {
       if (!mounted) return;
-      setState(() {
-        if (!doc.exists) {
-          _notFound = true;
-          _post = null;
-        } else {
-          _post = PostModel.fromFirestore(doc);
-          _commentsStream ??= PostsService.instance.streamComments(widget.postId);
-        }
-      });
+      if (!doc.exists) {
+        setState(() { _notFound = true; _post = null; });
+        return;
+      }
+      final newPost = PostModel.fromFirestore(doc);
+      _commentsStream ??= PostsService.instance.streamComments(widget.postId);
+      // Solo reconstruye si cambia algo visible en la UI
+      if (_post == null ||
+          _post!.likes != newPost.likes ||
+          _post!.likedBy.length != newPost.likedBy.length) {
+        setState(() => _post = newPost);
+      } else {
+        _post = newPost;
+      }
     });
   }
 
@@ -249,7 +254,7 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                     aspectRatio: 1,
                     child: Stack(fit: StackFit.expand, children: [
                       post.imageBase64.isNotEmpty
-                          ? ImageUtils.imageFromBase64(post.imageBase64)
+                          ? RepaintBoundary(child: ImageUtils.imageFromBase64(post.imageBase64, cacheKey: post.id))
                           : Container(
                               color: AppColors.accentBg,
                               child: const Icon(Icons.checkroom_outlined,

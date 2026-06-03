@@ -90,6 +90,38 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
     if (!_progressCtrl.isAnimating) _progressCtrl.forward();
   }
 
+  Future<void> _confirmDelete(BuildContext context) async {
+    _pause();
+    final nav = Navigator.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Eliminar historia',
+            style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
+        content: Text('¿Eliminar esta historia? No se puede deshacer.',
+            style: GoogleFonts.dmSans(fontSize: 14)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('Cancelar', style: GoogleFonts.dmSans()),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('Eliminar',
+                style: GoogleFonts.dmSans(color: Colors.red, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await StoriesService.instance.deleteStory(_story.id);
+      if (mounted) nav.pop();
+    } else {
+      _resume();
+    }
+  }
+
   String _timeAgo(DateTime dt) {
     final d = DateTime.now().difference(dt);
     if (d.inMinutes < 1) return 'Ahora';
@@ -220,7 +252,7 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
                 ]),
               ),
 
-              // ── Botones cerrar / denunciar ─────────────────────────────────
+              // ── Botones cerrar / denunciar / borrar ───────────────────────
               Positioned(
                 top: 18, right: 4,
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -239,6 +271,13 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
                       icon: const Icon(Icons.flag_outlined,
                           color: Colors.white, size: 22),
                       tooltip: 'Denunciar historia',
+                    ),
+                  if (_story.userId == widget.currentUid)
+                    IconButton(
+                      onPressed: () => _confirmDelete(context),
+                      icon: const Icon(Icons.delete_outline_rounded,
+                          color: Colors.white, size: 22),
+                      tooltip: 'Eliminar historia',
                     ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),

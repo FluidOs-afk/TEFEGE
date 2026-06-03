@@ -21,15 +21,49 @@ class ImageUtils {
     String base64String, {
     BoxFit fit = BoxFit.cover,
     Widget? placeholder,
+    String? cacheKey,
   }) {
     final fallback = placeholder ??
         const ColoredBox(color: Color(0xFFE8F5EE), child: SizedBox.expand());
     if (base64String.isEmpty) return fallback;
+    return _CachedBase64Image(
+      key: ValueKey(cacheKey ?? base64String.hashCode),
+      base64String: base64String,
+      fit: fit,
+      fallback: fallback,
+    );
+  }
+}
+
+class _CachedBase64Image extends StatefulWidget {
+  final String base64String;
+  final BoxFit fit;
+  final Widget fallback;
+  const _CachedBase64Image({
+    super.key,
+    required this.base64String,
+    required this.fit,
+    required this.fallback,
+  });
+  @override
+  State<_CachedBase64Image> createState() => _CachedBase64ImageState();
+}
+
+class _CachedBase64ImageState extends State<_CachedBase64Image> {
+  Uint8List? _bytes;
+
+  @override
+  void initState() {
+    super.initState();
     try {
-      return Image.memory(base64Decode(base64String), fit: fit);
-    } catch (_) {
-      return fallback;
-    }
+      _bytes = base64Decode(widget.base64String);
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_bytes == null) return widget.fallback;
+    return Image.memory(_bytes!, fit: widget.fit);
   }
 }
 

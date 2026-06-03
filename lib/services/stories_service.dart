@@ -70,6 +70,10 @@ class StoriesService {
     });
   }
 
+  Future<void> deleteStory(String storyId) async {
+    await _db.collection('stories').doc(storyId).delete();
+  }
+
   Future<void> deleteExpiredStories() async {
     final now = Timestamp.now();
     final snap = await _db
