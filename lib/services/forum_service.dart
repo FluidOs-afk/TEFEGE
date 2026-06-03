@@ -74,4 +74,27 @@ class ForumService {
         .doc(replyId)
         .delete();
   }
+
+  Future<void> toggleReplyLike(String threadId, String replyId, String uid) async {
+    final ref = _db
+        .collection('forum')
+        .doc(threadId)
+        .collection('replies')
+        .doc(replyId);
+    final doc = await ref.get();
+    if (!doc.exists) return;
+    final likedBy = List<String>.from(
+        (doc.data() as Map<String, dynamic>)['likedBy'] as List? ?? []);
+    if (likedBy.contains(uid)) {
+      await ref.update({
+        'likedBy': FieldValue.arrayRemove([uid]),
+        'likes': FieldValue.increment(-1),
+      });
+    } else {
+      await ref.update({
+        'likedBy': FieldValue.arrayUnion([uid]),
+        'likes': FieldValue.increment(1),
+      });
+    }
+  }
 }

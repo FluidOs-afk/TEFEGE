@@ -140,13 +140,32 @@ class PostsService {
         .doc(commentId);
     final doc = await ref.get();
     if (!doc.exists) return;
-    final likedBy = List<String>.from(
-        (doc.data() as Map<String, dynamic>)['likedBy'] as List? ?? []);
+    final data = doc.data() as Map<String, dynamic>;
+    final likedBy = List<String>.from(data['likedBy'] as List? ?? []);
     if (likedBy.contains(uid)) {
-      likedBy.remove(uid);
+      await ref.update({
+        'likedBy': FieldValue.arrayRemove([uid]),
+        'likes': FieldValue.increment(-1),
+      });
     } else {
-      likedBy.add(uid);
+      await ref.update({
+        'likedBy': FieldValue.arrayUnion([uid]),
+        'likes': FieldValue.increment(1),
+      });
+      // Notificar al autor del comentario
+      final commentOwnerId = data['userId'] as String? ?? '';
+      if (commentOwnerId.isNotEmpty && commentOwnerId != uid) {
+        final currentUserDoc = await _db.collection('users').doc(uid).get();
+        final currentUser = UserModel.fromFirestore(currentUserDoc);
+        NotificationsService.instance.createNotification(
+          toUid: commentOwnerId,
+          fromUid: uid,
+          fromUsername: currentUser.username,
+          fromAvatarBase64: currentUser.avatarBase64,
+          type: 'comment_like',
+          postId: postId,
+        );
+      }
     }
-    await ref.update({'likedBy': likedBy, 'likes': likedBy.length});
   }
 }

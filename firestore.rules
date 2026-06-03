@@ -6,6 +6,10 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == uid;
+      // Permite que otros usuarios actualicen solo campos sociales (follow, solicitudes)
+      allow update: if request.auth != null
+        && request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['followers', 'following', 'pendingRequests']);
 
       match /ai_outfits/{outfitId} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
@@ -53,6 +57,10 @@ service cloud.firestore {
       match /replies/{replyId} {
         allow read: if request.auth != null;
         allow create: if request.auth != null;
+        allow update: if request.auth != null &&
+          (request.auth.uid == resource.data.userId ||
+           request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['likes', 'likedBy']));
         allow delete: if request.auth != null &&
           request.auth.uid == resource.data.userId;
       }

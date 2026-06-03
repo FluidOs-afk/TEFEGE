@@ -7,6 +7,8 @@ class ForumReply {
   final String avatarBase64;
   final String content;
   final DateTime createdAt;
+  final int likes;
+  final List<String> likedBy;
 
   const ForumReply({
     required this.id,
@@ -15,7 +17,11 @@ class ForumReply {
     this.avatarBase64 = '',
     required this.content,
     required this.createdAt,
+    this.likes = 0,
+    this.likedBy = const [],
   });
+
+  bool isLikedBy(String uid) => likedBy.contains(uid);
 
   factory ForumReply.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
@@ -26,6 +32,8 @@ class ForumReply {
       avatarBase64: data['avatarBase64'] as String? ?? '',
       content: data['content'] as String? ?? '',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      likes: data['likes'] as int? ?? 0,
+      likedBy: List<String>.from(data['likedBy'] as List? ?? []),
     );
   }
 
@@ -35,5 +43,7 @@ class ForumReply {
         'avatarBase64': avatarBase64,
         'content': content,
         'createdAt': FieldValue.serverTimestamp(),
+        'likes': likes,
+        'likedBy': likedBy,
       };
 }

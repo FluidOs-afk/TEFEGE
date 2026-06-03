@@ -107,9 +107,11 @@ class NotificationsService {
     return switch (data['type']) {
       'like'          => '$from le ha dado like a tu publicación "${data['postTitle'] ?? ''}"',
       'comment'       => '$from comentó en tu publicación: "${data['text'] ?? ''}"',
-      'follow'        => '$from ha empezado a seguirte',
-      'follow_accept' => '$from ha aceptado tu solicitud de seguimiento',
-      'message'       => '$from te ha enviado un mensaje: "${data['text'] ?? ''}"',
+      'follow'         => '$from ha empezado a seguirte',
+      'follow_request' => '$from quiere seguirte',
+      'follow_accept'  => '$from ha aceptado tu solicitud de seguimiento',
+      'comment_like'   => '$from le ha dado like a tu comentario',
+      'message'        => '$from te ha enviado un mensaje: "${data['text'] ?? ''}"',
       _               => '$from interactuó contigo',
     };
   }

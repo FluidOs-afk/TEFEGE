@@ -75,6 +75,15 @@ class ProfileService {
     await _db.collection('users').doc(targetUid).update({
       'pendingRequests': FieldValue.arrayUnion([currentUid]),
     });
+    final currentUserDoc = await _db.collection('users').doc(currentUid).get();
+    final currentUser = UserModel.fromFirestore(currentUserDoc);
+    NotificationsService.instance.createNotification(
+      toUid: targetUid,
+      fromUid: currentUid,
+      fromUsername: currentUser.username,
+      fromAvatarBase64: currentUser.avatarBase64,
+      type: 'follow_request',
+    );
   }
 
   Future<void> cancelFollowRequest(String currentUid, String targetUid) async {

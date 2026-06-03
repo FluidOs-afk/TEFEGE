@@ -335,6 +335,7 @@ class _ThreadDetailScreenState extends State<_ThreadDetailScreen> {
                   else
                     ...replies.map((r) => _ReplyBubble(
                           reply: r, currentUid: widget.currentUid,
+                          threadId: thread.id,
                           onDelete: r.userId == widget.currentUid
                               ? () => ForumService.instance.deleteReply(thread.id, r.id)
                               : null,
@@ -374,28 +375,73 @@ class _ThreadDetailScreenState extends State<_ThreadDetailScreen> {
   }
 }
 
-class _ReplyBubble extends StatelessWidget {
+class _ReplyBubble extends StatefulWidget {
   final ForumReply reply;
   final String currentUid;
+  final String threadId;
   final VoidCallback? onDelete;
-  const _ReplyBubble({required this.reply, required this.currentUid, this.onDelete});
+  const _ReplyBubble({required this.reply, required this.currentUid, required this.threadId, this.onDelete});
+
+  @override
+  State<_ReplyBubble> createState() => _ReplyBubbleState();
+}
+
+class _ReplyBubbleState extends State<_ReplyBubble> {
+  late bool _liked;
+  late int _likes;
+
+  @override
+  void initState() {
+    super.initState();
+    _liked = widget.reply.isLikedBy(widget.currentUid);
+    _likes = widget.reply.likes;
+  }
+
+  @override
+  void didUpdateWidget(_ReplyBubble old) {
+    super.didUpdateWidget(old);
+    if (old.reply != widget.reply) {
+      _liked = widget.reply.isLikedBy(widget.currentUid);
+      _likes = widget.reply.likes;
+    }
+  }
+
+  Future<void> _toggleLike() async {
+    setState(() { _liked = !_liked; _likes += _liked ? 1 : -1; });
+    await ForumService.instance.toggleReplyLike(widget.threadId, widget.reply.id, widget.currentUid);
+  }
 
   @override
   Widget build(BuildContext context) => _ForumPanel(
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        _AuthorRow(avatarBase64: reply.avatarBase64, username: reply.username, userId: reply.userId),
+        _AuthorRow(avatarBase64: widget.reply.avatarBase64, username: widget.reply.username, userId: widget.reply.userId),
         const Spacer(),
-        Text(_relativeTime(reply.createdAt),
+        Text(_relativeTime(widget.reply.createdAt),
             style: GoogleFonts.dmSans(fontSize: 10, color: AppColors.textHint)),
-        if (onDelete != null) ...[
+        if (widget.onDelete != null) ...[
           const SizedBox(width: 4),
-          GestureDetector(onTap: onDelete,
+          GestureDetector(onTap: widget.onDelete,
               child: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red)),
         ],
       ]),
       const SizedBox(height: 8),
-      Text(reply.content, style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.textPrimary, height: 1.4)),
+      Text(widget.reply.content, style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.textPrimary, height: 1.4)),
+      const SizedBox(height: 8),
+      GestureDetector(
+        onTap: _toggleLike,
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(
+            _liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+            size: 14,
+            color: _liked ? AppColors.primary : AppColors.textHint,
+          ),
+          if (_likes > 0) ...[
+            const SizedBox(width: 3),
+            Text('$_likes', style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint, fontWeight: FontWeight.w600)),
+          ],
+        ]),
+      ),
     ]),
   );
 }
