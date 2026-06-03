@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../models/report_model.dart';
 import '../models/story_model.dart';
 import '../services/stories_service.dart';
 import '../widgets/avatar_with_frame.dart';
+import '../widgets/report_sheet.dart';
 
 class StoryViewerScreen extends StatefulWidget {
   /// Lista completa de historias activas (una por usuario), en orden del feed.
@@ -218,14 +220,32 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
                 ]),
               ),
 
-              // ── Botón cerrar ───────────────────────────────────────────────
+              // ── Botones cerrar / denunciar ─────────────────────────────────
               Positioned(
                 top: 18, right: 4,
-                child: IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close_rounded,
-                      color: Colors.white, size: 26),
-                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  if (_story.userId != widget.currentUid)
+                    IconButton(
+                      onPressed: () {
+                        _pause();
+                        showReportSheet(
+                          context,
+                          reporterId: widget.currentUid,
+                          targetId: _story.id,
+                          targetType: ReportTargetType.story,
+                          targetContent: 'Historia de @${_story.username}',
+                        ).then((_) => _resume());
+                      },
+                      icon: const Icon(Icons.flag_outlined,
+                          color: Colors.white, size: 22),
+                      tooltip: 'Denunciar historia',
+                    ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close_rounded,
+                        color: Colors.white, size: 26),
+                  ),
+                ]),
               ),
             ],
           ),

@@ -404,6 +404,7 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                                             reporterId: currentUid,
                                             targetId: c.id,
                                             targetType: ReportTargetType.comment,
+                                            targetContent: c.text,
                                           )
                                       : null,
                                 ))
@@ -553,6 +554,7 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                   reporterId: currentUid,
                   targetId: post.id,
                   targetType: ReportTargetType.post,
+                  targetContent: '${post.title} — ${post.description}',
                 );
               },
             ),

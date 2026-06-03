@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum ReportTargetType { post, comment, message, user }
+enum ReportTargetType { post, comment, message, user, story }
 
 enum ReportReason { spam, hateSpeech, inappropriate, harassment, other }
 
@@ -13,6 +13,7 @@ class ReportModel {
   final ReportTargetType targetType;
   final ReportReason reason;
   final String description;
+  final String targetContent;
   final DateTime createdAt;
   final ReportStatus status;
 
@@ -23,6 +24,7 @@ class ReportModel {
     required this.targetType,
     required this.reason,
     this.description = '',
+    this.targetContent = '',
     required this.createdAt,
     this.status = ReportStatus.pending,
   });
@@ -38,6 +40,7 @@ class ReportModel {
       reason: ReportReason.values.byName(
           data['reason'] as String? ?? 'other'),
       description: data['description'] as String? ?? '',
+      targetContent: data['targetContent'] as String? ?? '',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       status: ReportStatus.values.byName(
           data['status'] as String? ?? 'pending'),
@@ -50,6 +53,7 @@ class ReportModel {
         'targetType': targetType.name,
         'reason': reason.name,
         'description': description,
+        'targetContent': targetContent,
         'createdAt': FieldValue.serverTimestamp(),
         'status': status.name,
       };

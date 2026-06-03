@@ -65,8 +65,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     final title = _titleCtrl.text.trim();
     if (title.isEmpty) { _snack('El título es obligatorio'); return; }
     if (_imageFile == null) { _snack('Selecciona una imagen para la publicación'); return; }
+    if (ContentFilter.containsProfanity(title)) { _snack('El título contiene lenguaje inapropiado.'); return; }
 
-    // Filtro de lenguaje en la descripción
     final description = _descCtrl.text.trim();
     if (ContentFilter.containsProfanity(description)) {
       await showDialog<void>(

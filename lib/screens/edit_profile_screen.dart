@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../main.dart' show AppColors;
 import '../providers/auth_provider.dart';
 import '../services/profile_service.dart';
+import '../utils/content_filter.dart';
 import '../utils/image_utils.dart';
 import '../widgets/avatar_with_frame.dart';
 
@@ -109,6 +110,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (username.isEmpty || username.contains(' ')) {
       _showError('El usuario no puede estar vacío ni tener espacios.'); return;
     }
+    if (ContentFilter.containsProfanity(bio)) { _showError('La biografía contiene lenguaje inapropiado.'); return; }
 
     setState(() => _saving = true);
     final auth = context.read<AuthProvider>();

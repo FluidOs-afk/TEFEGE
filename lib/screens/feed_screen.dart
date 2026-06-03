@@ -484,6 +484,7 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
                     reporterId: currentUid,
                     targetId: post.id,
                     targetType: ReportTargetType.post,
+                    targetContent: '${post.title} — ${post.description}',
                   );
                 },
               ),

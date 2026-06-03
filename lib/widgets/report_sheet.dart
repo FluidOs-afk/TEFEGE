@@ -17,6 +17,7 @@ Future<void> showReportSheet(
   required String reporterId,
   required String targetId,
   required ReportTargetType targetType,
+  String targetContent = '',
 }) async {
   await showModalBottomSheet<void>(
     context: parentContext,
@@ -27,6 +28,7 @@ Future<void> showReportSheet(
       reporterId: reporterId,
       targetId: targetId,
       targetType: targetType,
+      targetContent: targetContent,
     ),
   );
 }
@@ -36,12 +38,14 @@ class _ReportSheetContent extends StatefulWidget {
   final String reporterId;
   final String targetId;
   final ReportTargetType targetType;
+  final String targetContent;
 
   const _ReportSheetContent({
     required this.parentContext,
     required this.reporterId,
     required this.targetId,
     required this.targetType,
+    this.targetContent = '',
   });
 
   @override
@@ -70,6 +74,7 @@ class _ReportSheetContentState extends State<_ReportSheetContent> {
         targetType: widget.targetType,
         reason: _selectedReason!,
         description: _descCtrl.text.trim(),
+        targetContent: widget.targetContent,
         createdAt: DateTime.now(),
       ));
       if (mounted) Navigator.of(context).pop();

@@ -1,7 +1,7 @@
 class ContentFilter {
   static const List<String> _badWords = [
     // Español
-    'puta', 'puto', 'mierda', 'coño', 'cono', 'hostia', 'joder', 'follar',
+    'puta', 'puto', 'mierda', 'coño', 'cono', 'hostia', 'joder', 'follar', 'sexo',
     'cabron', 'cabrón', 'gilipollas', 'imbecil', 'idiota', 'estupido',
     'maricon', 'maricón', 'zorra', 'polla', 'capullo', 'subnormal',
     'bastardo', 'cojones', 'hijoputa', 'pendejo', 'chinga', 'verga',
@@ -29,7 +29,7 @@ class ContentFilter {
   static bool containsProfanity(String text) {
     final normalized = _normalize(text);
     for (final word in _badWords) {
-      if (normalized.contains(word)) return true;
+      if (RegExp(r'\b' + RegExp.escape(word) + r'\b').hasMatch(normalized)) return true;
     }
     return false;
   }
@@ -38,7 +38,7 @@ class ContentFilter {
     var result = text;
     for (final word in _badWords) {
       result = result.replaceAllMapped(
-        RegExp(word, caseSensitive: false),
+        RegExp(r'\b' + RegExp.escape(word) + r'\b', caseSensitive: false),
         (m) => '*' * m.group(0)!.length,
       );
     }

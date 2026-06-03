@@ -174,6 +174,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                 reporterId: currentUid,
                                 targetId: doc.id,
                                 targetType: ReportTargetType.message,
+                                targetContent: text,
                               )
                           : null,
                     );

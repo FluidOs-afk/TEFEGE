@@ -8,8 +8,10 @@ import '../main.dart' show AppColors;
 import '../models/post_model.dart';
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
+import '../models/report_model.dart';
 import '../services/profile_service.dart';
 import '../widgets/avatar_with_frame.dart';
+import '../widgets/report_sheet.dart';
 import '../services/messages_service.dart';
 import 'chat_screen.dart';
 import 'create_post_screen.dart';
@@ -207,6 +209,18 @@ class _ProfileBodyState extends State<_ProfileBody> {
                   icon: const Icon(Icons.settings_outlined),
                   onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const SettingsScreen())),
+                ),
+              if (!widget.isOwn)
+                IconButton(
+                  icon: const Icon(Icons.flag_outlined),
+                  tooltip: 'Denunciar usuario',
+                  onPressed: () => showReportSheet(
+                    context,
+                    reporterId: widget.currentUid,
+                    targetId: widget.user.uid,
+                    targetType: ReportTargetType.user,
+                    targetContent: '@${widget.user.username} (${widget.user.nombre})',
+                  ),
                 ),
             ],
             flexibleSpace: LayoutBuilder(

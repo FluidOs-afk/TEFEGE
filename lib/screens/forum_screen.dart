@@ -6,6 +6,7 @@ import '../models/forum_thread.dart';
 import '../models/forum_reply.dart';
 import '../providers/auth_provider.dart';
 import '../services/forum_service.dart';
+import '../utils/content_filter.dart';
 import '../utils/image_utils.dart';
 
 const _kCategories = ['Todos','Tendencias','Sostenibilidad','Compras','Estilo','OOTD'];
@@ -230,6 +231,13 @@ class _ThreadDetailScreenState extends State<_ThreadDetailScreen> {
   Future<void> _sendReply() async {
     final text = _replyCtrl.text.trim();
     if (text.isEmpty || _sending) return;
+    if (ContentFilter.containsProfanity(text)) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Tu respuesta contiene lenguaje inapropiado.', style: GoogleFonts.dmSans()),
+        backgroundColor: Colors.orange,
+      ));
+      return;
+    }
     setState(() => _sending = true);
     _replyCtrl.clear();
     FocusScope.of(context).unfocus();
@@ -419,6 +427,10 @@ class _ThreadComposerState extends State<_ThreadComposer> {
     final content = _contentCtrl.text.trim();
     if (title.length < 5) { _snack('El título necesita al menos 5 caracteres'); return; }
     if (content.length < 10) { _snack('El contenido necesita al menos 10 caracteres'); return; }
+    if (ContentFilter.containsProfanity(title) || ContentFilter.containsProfanity(content)) {
+      _snack('El hilo contiene lenguaje inapropiado.');
+      return;
+    }
     setState(() => _publishing = true);
     try {
       await ForumService.instance.createThread(ForumThread(

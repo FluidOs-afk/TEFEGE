@@ -46,6 +46,10 @@ app.*.map.json
 
 # Environment variables — never commit secrets
 .env
+functions/.env
+
+# Node dependencies (Cloud Functions)
+functions/node_modules/
 
 # Firebase project config — contains project ID
 .firebaserc
