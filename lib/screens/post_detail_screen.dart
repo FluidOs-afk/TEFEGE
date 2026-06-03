@@ -400,6 +400,7 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                             .map((c) => _CommentRow(
                                   comment: c,
                                   currentUid: currentUid,
+                                  postId: widget.postId,
                                   onDelete: c.userId == currentUid
                                       ? () => _confirmDeleteComment(context, c.id)
                                       : null,
@@ -603,24 +604,59 @@ class _PostDetailScreenState extends State<PostDetailScreen>
 }
 
 // ── CommentRow ─────────────────────────────────────────────────────────────────
-class _CommentRow extends StatelessWidget {
+class _CommentRow extends StatefulWidget {
   final CommentModel comment;
   final String currentUid;
+  final String postId;
   final VoidCallback? onDelete;
   final VoidCallback? onReport;
 
   const _CommentRow({
     required this.comment,
     required this.currentUid,
+    required this.postId,
     this.onDelete,
     this.onReport,
   });
 
   @override
+  State<_CommentRow> createState() => _CommentRowState();
+}
+
+class _CommentRowState extends State<_CommentRow> {
+  late bool _liked;
+  late int _likes;
+
+  @override
+  void initState() {
+    super.initState();
+    _liked = widget.comment.isLikedBy(widget.currentUid);
+    _likes = widget.comment.likes;
+  }
+
+  @override
+  void didUpdateWidget(_CommentRow old) {
+    super.didUpdateWidget(old);
+    if (old.comment != widget.comment) {
+      _liked = widget.comment.isLikedBy(widget.currentUid);
+      _likes = widget.comment.likes;
+    }
+  }
+
+  Future<void> _toggleLike() async {
+    setState(() {
+      _liked = !_liked;
+      _likes += _liked ? 1 : -1;
+    });
+    await PostsService.instance.toggleCommentLike(
+        widget.postId, widget.comment.id, widget.currentUid);
+  }
+
+  @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          _AvatarSmall(base64: comment.avatarBase64, name: comment.username),
+          _AvatarSmall(base64: widget.comment.avatarBase64, name: widget.comment.username),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -631,31 +667,31 @@ class _CommentRow extends StatelessWidget {
                       child: RichText(
                           text: TextSpan(children: [
                         TextSpan(
-                            text: '${comment.username}  ',
+                            text: '${widget.comment.username}  ',
                             style: GoogleFonts.dmSans(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 13,
                                 color: AppColors.textPrimary)),
                         TextSpan(
-                            text: comment.text,
+                            text: widget.comment.text,
                             style: GoogleFonts.dmSans(
                                 fontSize: 13,
                                 color: AppColors.textSec,
                                 height: 1.4)),
                       ])),
                     ),
-                    if (onDelete != null)
+                    if (widget.onDelete != null)
                       GestureDetector(
-                        onTap: onDelete,
+                        onTap: widget.onDelete,
                         child: Padding(
                           padding: const EdgeInsets.only(left: 8, top: 2),
                           child: Icon(Icons.delete_outline_rounded,
                               size: 15, color: AppColors.textHint),
                         ),
                       ),
-                    if (onReport != null)
+                    if (widget.onReport != null)
                       GestureDetector(
-                        onTap: onReport,
+                        onTap: widget.onReport,
                         child: Padding(
                           padding: const EdgeInsets.only(left: 8, top: 2),
                           child: Icon(Icons.flag_outlined,
@@ -663,10 +699,31 @@ class _CommentRow extends StatelessWidget {
                         ),
                       ),
                   ]),
-                  const SizedBox(height: 2),
-                  Text(_timeAgo(comment.createdAt),
-                      style: GoogleFonts.dmSans(
-                          fontSize: 10, color: AppColors.textHint)),
+                  const SizedBox(height: 4),
+                  Row(children: [
+                    Text(_timeAgo(widget.comment.createdAt),
+                        style: GoogleFonts.dmSans(
+                            fontSize: 10, color: AppColors.textHint)),
+                    const SizedBox(width: 10),
+                    GestureDetector(
+                      onTap: _toggleLike,
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(
+                          _liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                          size: 13,
+                          color: _liked ? AppColors.primary : AppColors.textHint,
+                        ),
+                        if (_likes > 0) ...[
+                          const SizedBox(width: 3),
+                          Text('$_likes',
+                              style: GoogleFonts.dmSans(
+                                  fontSize: 10,
+                                  color: AppColors.textHint,
+                                  fontWeight: FontWeight.w600)),
+                        ],
+                      ]),
+                    ),
+                  ]),
                 ]),
           ),
         ]),

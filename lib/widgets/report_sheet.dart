@@ -129,20 +129,18 @@ class _ReportSheetContentState extends State<_ReportSheetContent> {
                     style: GoogleFonts.dmSans(
                         color: context.colTextSec, fontSize: 13)),
                 const SizedBox(height: 14),
-                RadioGroup<ReportReason>(
-                  groupValue: _selectedReason,
-                  onChanged: (v) => setState(() => _selectedReason = v),
-                  child: Column(
-                    children: _kReasons.map((entry) => RadioListTile<ReportReason>(
-                      value: entry.$1,
-                      title: Text(entry.$2,
-                          style: GoogleFonts.dmSans(
-                              fontSize: 14, color: context.colText)),
-                      activeColor: AppColors.primary,
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                    )).toList(),
-                  ),
+                Column(
+                  children: _kReasons.map((entry) => RadioListTile<ReportReason>(
+                    value: entry.$1,
+                    groupValue: _selectedReason,
+                    onChanged: (v) => setState(() => _selectedReason = v),
+                    title: Text(entry.$2,
+                        style: GoogleFonts.dmSans(
+                            fontSize: 14, color: context.colText)),
+                    activeColor: AppColors.primary,
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                  )).toList(),
                 ),
                 if (_selectedReason == ReportReason.other) ...[
                   const SizedBox(height: 8),

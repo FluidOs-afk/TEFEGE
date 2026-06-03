@@ -43,17 +43,6 @@ class AiOutfitsScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(children: [
-                            const Icon(Icons.auto_awesome_rounded,
-                                color: Colors.white, size: 22),
-                            const SizedBox(width: 8),
-                            Text('IA Outfits',
-                                style: GoogleFonts.dmSans(
-                                    color: Colors.white,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w800)),
-                          ]),
-                          const SizedBox(height: 6),
                           Text(
                               'Combinaciones personalizadas con tu armario',
                               style: GoogleFonts.dmSans(

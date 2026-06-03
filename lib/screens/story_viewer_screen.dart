@@ -6,6 +6,7 @@ import '../models/story_model.dart';
 import '../services/stories_service.dart';
 import '../widgets/avatar_with_frame.dart';
 import '../widgets/report_sheet.dart';
+import 'profile_screen.dart';
 
 class StoryViewerScreen extends StatefulWidget {
   /// Lista completa de historias activas (una por usuario), en orden del feed.
@@ -214,42 +215,52 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
               // ── Información del usuario ────────────────────────────────────
               Positioned(
                 top: 22, left: 12, right: 56,
-                child: Row(children: [
-                  AvatarWithFrame(
-                    base64: story.avatarBase64,
-                    frameStyle: story.frameStyle ?? 'none',
-                    radius: 20,
-                    initials: story.username.isNotEmpty
-                        ? story.username[0].toUpperCase()
-                        : '?',
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          story.username,
-                          style: GoogleFonts.dmSans(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
-                              shadows: [const Shadow(blurRadius: 4)]),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          _timeAgo(story.createdAt),
-                          style: GoogleFonts.dmSans(
-                              color: Colors.white70,
-                              fontSize: 11,
-                              shadows: [const Shadow(blurRadius: 4)]),
-                        ),
-                      ],
+                child: GestureDetector(
+                  onTap: () {
+                    _pause();
+                    Navigator.of(context)
+                        .push(MaterialPageRoute(
+                          builder: (_) => ProfileScreen(userId: story.userId),
+                        ))
+                        .then((_) => _resume());
+                  },
+                  child: Row(children: [
+                    AvatarWithFrame(
+                      base64: story.avatarBase64,
+                      frameStyle: story.frameStyle ?? 'none',
+                      radius: 20,
+                      initials: story.username.isNotEmpty
+                          ? story.username[0].toUpperCase()
+                          : '?',
                     ),
-                  ),
-                ]),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            story.username,
+                            style: GoogleFonts.dmSans(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                                shadows: [const Shadow(blurRadius: 4)]),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            _timeAgo(story.createdAt),
+                            style: GoogleFonts.dmSans(
+                                color: Colors.white70,
+                                fontSize: 11,
+                                shadows: [const Shadow(blurRadius: 4)]),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ]),
+                ),
               ),
 
               // ── Botones cerrar / denunciar / borrar ───────────────────────

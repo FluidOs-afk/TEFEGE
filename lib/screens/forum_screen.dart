@@ -8,6 +8,7 @@ import '../providers/auth_provider.dart';
 import '../services/forum_service.dart';
 import '../utils/content_filter.dart';
 import '../utils/image_utils.dart';
+import 'profile_screen.dart';
 
 const _kCategories = ['Todos','Tendencias','Sostenibilidad','Compras','Estilo','OOTD'];
 
@@ -179,7 +180,7 @@ class _ThreadCard extends StatelessWidget {
             style: GoogleFonts.dmSans(fontSize: 12, color: AppColors.textSec, height: 1.35)),
         const SizedBox(height: 10),
         Row(children: [
-          _AuthorRow(avatarBase64: thread.avatarBase64, username: thread.username),
+          _AuthorRow(avatarBase64: thread.avatarBase64, username: thread.username, userId: thread.userId),
           const Spacer(),
           GestureDetector(
             onTap: onLike,
@@ -312,7 +313,7 @@ class _ThreadDetailScreenState extends State<_ThreadDetailScreen> {
                         style: GoogleFonts.dmSans(fontSize: 14, color: AppColors.textPrimary, height: 1.45)),
                     const SizedBox(height: 12),
                     Row(children: [
-                      _AuthorRow(avatarBase64: thread.avatarBase64, username: thread.username),
+                      _AuthorRow(avatarBase64: thread.avatarBase64, username: thread.username, userId: thread.userId),
                       const Spacer(),
                       GestureDetector(
                         onTap: () => ForumService.instance.toggleLike(thread.id, widget.currentUid),
@@ -383,7 +384,7 @@ class _ReplyBubble extends StatelessWidget {
   Widget build(BuildContext context) => _ForumPanel(
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        _AuthorRow(avatarBase64: reply.avatarBase64, username: reply.username),
+        _AuthorRow(avatarBase64: reply.avatarBase64, username: reply.username, userId: reply.userId),
         const Spacer(),
         Text(_relativeTime(reply.createdAt),
             style: GoogleFonts.dmSans(fontSize: 10, color: AppColors.textHint)),
@@ -524,18 +525,22 @@ class _ThreadComposerState extends State<_ThreadComposer> {
 
 // ─── Widgets auxiliares ───────────────────────────────────────────────────────
 class _AuthorRow extends StatelessWidget {
-  final String avatarBase64, username;
-  const _AuthorRow({required this.avatarBase64, required this.username});
+  final String avatarBase64, username, userId;
+  const _AuthorRow({required this.avatarBase64, required this.username, required this.userId});
 
   @override
-  Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
-    ClipOval(child: SizedBox(width: 22, height: 22,
-        child: avatarBase64.isNotEmpty
-            ? ImageUtils.imageFromBase64(avatarBase64, placeholder: _fallback())
-            : _fallback())),
-    const SizedBox(width: 6),
-    Text('@$username', style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textSec, fontWeight: FontWeight.w700)),
-  ]);
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => ProfileScreen(userId: userId))),
+    child: Row(mainAxisSize: MainAxisSize.min, children: [
+      ClipOval(child: SizedBox(width: 22, height: 22,
+          child: avatarBase64.isNotEmpty
+              ? ImageUtils.imageFromBase64(avatarBase64, placeholder: _fallback())
+              : _fallback())),
+      const SizedBox(width: 6),
+      Text('@$username', style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textSec, fontWeight: FontWeight.w700)),
+    ]),
+  );
 
   Widget _fallback() => Container(
     width: 22, height: 22,

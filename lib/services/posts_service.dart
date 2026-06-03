@@ -131,4 +131,22 @@ class PostsService {
         .snapshots()
         .map((s) => s.docs.map(CommentModel.fromFirestore).toList());
   }
+
+  Future<void> toggleCommentLike(String postId, String commentId, String uid) async {
+    final ref = _db
+        .collection('posts')
+        .doc(postId)
+        .collection('comments')
+        .doc(commentId);
+    final doc = await ref.get();
+    if (!doc.exists) return;
+    final likedBy = List<String>.from(
+        (doc.data() as Map<String, dynamic>)['likedBy'] as List? ?? []);
+    if (likedBy.contains(uid)) {
+      likedBy.remove(uid);
+    } else {
+      likedBy.add(uid);
+    }
+    await ref.update({'likedBy': likedBy, 'likes': likedBy.length});
+  }
 }

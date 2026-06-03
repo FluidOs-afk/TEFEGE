@@ -68,6 +68,13 @@ class _RequestTile extends StatefulWidget {
 
 class _RequestTileState extends State<_RequestTile> {
   bool _loading = false;
+  late final Future<UserModel> _userFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _userFuture = ProfileService.instance.getUser(widget.requesterUid);
+  }
 
   Future<void> _accept() => _act(() =>
       ProfileService.instance.acceptFollowRequest(widget.ownerUid, widget.requesterUid));
@@ -88,7 +95,7 @@ class _RequestTileState extends State<_RequestTile> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<UserModel>(
-      future: ProfileService.instance.getUser(widget.requesterUid),
+      future: _userFuture,
       builder: (context, snap) {
         final user = snap.data;
         return Container(
