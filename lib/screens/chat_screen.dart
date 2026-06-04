@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../main.dart' show AppColors;
+import '../main.dart' show AppColors, AppColorsExt;
 import '../models/report_model.dart';
 import '../providers/auth_provider.dart';
 import '../services/messages_service.dart';
@@ -54,7 +54,6 @@ class _ChatScreenState extends State<ChatScreen> {
     final text = _textCtrl.text.trim();
     if (text.isEmpty || _sending) return;
 
-    // Filtro de lenguaje
     if (ContentFilter.containsProfanity(text)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -99,7 +98,6 @@ class _ChatScreenState extends State<ChatScreen> {
     final currentUid = context.read<AuthProvider>().currentUser?.uid ?? '';
 
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
       appBar: AppBar(
         titleSpacing: 0,
         title: GestureDetector(
@@ -123,11 +121,11 @@ class _ChatScreenState extends State<ChatScreen> {
                       style: GoogleFonts.dmSans(
                           fontWeight: FontWeight.w700,
                           fontSize: 15,
-                          color: AppColors.textPrimary)),
+                          color: context.colText)),
                   if (widget.otherUsername.isNotEmpty)
                     Text('@${widget.otherUsername}',
                         style: GoogleFonts.dmSans(
-                            fontSize: 11, color: AppColors.textSec)),
+                            fontSize: 11, color: context.colTextSec)),
                 ]),
           ]),
         ),
@@ -140,21 +138,19 @@ class _ChatScreenState extends State<ChatScreen> {
               builder: (context, snap) {
                 if (snap.connectionState == ConnectionState.waiting) {
                   return const Center(
-                      child: CircularProgressIndicator(
-                          color: AppColors.primary));
+                      child: CircularProgressIndicator(color: AppColors.primary));
                 }
                 final docs = snap.data?.docs ?? [];
                 if (docs.isEmpty) {
                   return Center(
                     child: Text('Empieza la conversación',
                         style: GoogleFonts.dmSans(
-                            color: AppColors.textHint, fontSize: 13)),
+                            color: context.colTextHint, fontSize: 13)),
                   );
                 }
                 return ListView.builder(
                   reverse: true,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   itemCount: docs.length,
                   itemBuilder: (context, i) {
                     final doc = docs[i];
@@ -215,8 +211,7 @@ class _MessageBubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
-        mainAxisAlignment:
-            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Column(
@@ -228,10 +223,9 @@ class _MessageBubble extends StatelessWidget {
                 child: Container(
                   constraints: BoxConstraints(
                       maxWidth: MediaQuery.of(context).size.width * 0.72),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: isMe ? AppColors.primary : AppColors.bgCard,
+                    color: isMe ? AppColors.primary : context.colBgCard,
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(18),
                       topRight: const Radius.circular(18),
@@ -242,12 +236,11 @@ class _MessageBubble extends StatelessWidget {
                           ? const Radius.circular(4)
                           : const Radius.circular(18),
                     ),
-                    border:
-                        isMe ? null : Border.all(color: AppColors.border),
+                    border: isMe ? null : Border.all(color: context.colBorder),
                   ),
                   child: Text(text,
                       style: GoogleFonts.dmSans(
-                        color: isMe ? Colors.white : AppColors.textPrimary,
+                        color: isMe ? Colors.white : context.colText,
                         fontSize: 14,
                         height: 1.4,
                       )),
@@ -255,11 +248,10 @@ class _MessageBubble extends StatelessWidget {
               ),
               if (time.isNotEmpty)
                 Padding(
-                  padding:
-                      const EdgeInsets.only(top: 2, left: 4, right: 4),
+                  padding: const EdgeInsets.only(top: 2, left: 4, right: 4),
                   child: Text(time,
                       style: GoogleFonts.dmSans(
-                          fontSize: 10, color: AppColors.textHint)),
+                          fontSize: 10, color: context.colTextHint)),
                 ),
             ],
           ),
@@ -274,15 +266,16 @@ class _InputBar extends StatelessWidget {
   final bool sending;
   final VoidCallback onSend;
 
-  const _InputBar(
-      {required this.controller,
-      required this.sending,
-      required this.onSend});
+  const _InputBar({
+    required this.controller,
+    required this.sending,
+    required this.onSend,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.bgCard,
+      color: context.colBgCard,
       padding: EdgeInsets.only(
         left: 12,
         right: 8,
@@ -298,23 +291,23 @@ class _InputBar extends StatelessWidget {
             minLines: 1,
             decoration: InputDecoration(
               hintText: 'Escribe un mensaje…',
-              hintStyle: GoogleFonts.dmSans(color: AppColors.textHint),
-              contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 10),
+              hintStyle: GoogleFonts.dmSans(color: context.colTextHint),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(24),
-                borderSide: const BorderSide(color: AppColors.border),
+                borderSide: BorderSide(color: context.colBorder),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(24),
-                borderSide: const BorderSide(color: AppColors.border),
+                borderSide: BorderSide(color: context.colBorder),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(24),
                 borderSide:
                     const BorderSide(color: AppColors.primary, width: 1.5),
               ),
-              fillColor: AppColors.bgPage,
+              fillColor: context.colBgPage,
               filled: true,
             ),
             onSubmitted: (_) => onSend(),
@@ -338,8 +331,7 @@ class _InputBar extends StatelessWidget {
                         height: 18,
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: Colors.white)))
-                : const Icon(Icons.send_rounded,
-                    color: Colors.white, size: 20),
+                : const Icon(Icons.send_rounded, color: Colors.white, size: 20),
           ),
         ),
       ]),
