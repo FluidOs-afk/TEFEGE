@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../main.dart' show AppColors;
+import '../main.dart' show AppColors, AppColorsExt;
 
 class OutfyAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -17,7 +17,6 @@ class OutfyAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: AppColors.bgCard,
       elevation: 0,
       scrolledUnderElevation: 0.4,
       centerTitle: true,
@@ -41,7 +40,7 @@ class OutfyAppBar extends StatelessWidget implements PreferredSizeWidget {
               style: GoogleFonts.dmSans(
                 fontWeight: FontWeight.w700,
                 fontSize: 17,
-                color: AppColors.textPrimary,
+                color: context.colText,
                 letterSpacing: -0.3,
               ),
             ),

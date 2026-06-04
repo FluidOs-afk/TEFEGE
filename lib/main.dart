@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
@@ -57,6 +58,11 @@ extension AppColorsExt on BuildContext {
 // ─── App ───────────────────────────────────────────────────────────────────────
 final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // Firebase is already initialized by the platform plugin in background isolate
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -69,6 +75,9 @@ void main() async {
     return;
   }
 
+  if (!kIsWeb) {
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  }
   try { await NotificationsService.instance.init(scaffoldMessengerKey); } catch (_) {}
   try { await StoriesService.instance.deleteExpiredStories(); } catch (_) {}
   try { await initializeDateFormatting('es', null); } catch (_) {}

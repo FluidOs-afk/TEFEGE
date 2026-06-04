@@ -1,6 +1,9 @@
+import 'dart:async' show unawaited;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../main.dart' show AppColors, AppColorsExt;
 import '../screens/messages_list_screen.dart';
 
@@ -10,15 +13,17 @@ class ShareSheet extends StatelessWidget {
 
   const ShareSheet({super.key, required this.postId, required this.postTitle});
 
-  String get _link => 'outfy://post/$postId';
+  String get _link => 'https://outfy.app/post/$postId';
+  String get _shareText => '$postTitle\n$_link';
 
-  Future<void> _launchExternal(BuildContext context, String url) async {
-    await Clipboard.setData(ClipboardData(text: url));
-    if (context.mounted) {
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enlace copiado. Pégalo en la app correspondiente.')),
-      );
+  Future<void> _openUrl(BuildContext context, String url) async {
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo abrir la aplicación')),
+        );
+      }
     }
   }
 
@@ -85,35 +90,44 @@ class ShareSheet extends StatelessWidget {
                   icon: Icons.chat_rounded,
                   label: 'WhatsApp',
                   color: const Color(0xFF25D366),
-                  onTap: () => _launchExternal(
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _openUrl(
                       context,
-                      'https://wa.me/?text=${Uri.encodeComponent('$postTitle\n$_link')}'),
+                      'https://wa.me/?text=${Uri.encodeComponent(_shareText)}',
+                    );
+                  },
                 ),
                 _ShareOption(
                   icon: Icons.camera_alt_rounded,
                   label: 'Instagram',
                   color: const Color(0xFFE1306C),
-                  onTap: () => _launchExternal(context, 'instagram://app'),
+                  onTap: () async {
+                    Navigator.of(context).pop();
+                    await Clipboard.setData(ClipboardData(text: _shareText));
+                    unawaited(launchUrl(Uri.parse('instagram://app'),
+                        mode: LaunchMode.externalApplication));
+                  },
                 ),
                 _ShareOption(
                   icon: Icons.telegram_rounded,
                   label: 'Telegram',
                   color: const Color(0xFF0088CC),
-                  onTap: () => _launchExternal(
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _openUrl(
                       context,
-                      'https://t.me/share/url?url=${Uri.encodeComponent(_link)}&text=${Uri.encodeComponent(postTitle)}'),
+                      'https://t.me/share/url?url=${Uri.encodeComponent(_link)}&text=${Uri.encodeComponent(postTitle)}',
+                    );
+                  },
                 ),
                 _ShareOption(
                   icon: Icons.more_horiz_rounded,
                   label: 'Más\nopciones',
                   color: const Color(0xFF9CA3AF),
                   onTap: () async {
-                    await Clipboard.setData(ClipboardData(text: '$postTitle\n$_link'));
-                    if (context.mounted) {
-                      Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Contenido copiado. Pégalo donde quieras.')));
-                    }
+                    Navigator.of(context).pop();
+                    await Share.share(_shareText, subject: postTitle);
                   },
                 ),
               ]),

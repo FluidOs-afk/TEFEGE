@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../main.dart' show AppColors;
+import '../main.dart' show AppColors, AppColorsExt;
 import '../providers/auth_provider.dart';
 import '../services/messages_service.dart';
 import '../services/notifications_service.dart';
@@ -72,7 +72,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final uid = context.read<AuthProvider>().currentUser?.uid ?? '';
 
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
       appBar: AppBar(
         title: Text('Notificaciones', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 17)),
         actions: [
@@ -91,20 +90,32 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           if (snap.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator(color: AppColors.primary));
           }
-          final docs = snap.data?.docs ?? [];
+          if (snap.hasError) {
+            return Center(child: Text('Error: ${snap.error}',
+                style: GoogleFonts.dmSans(color: context.colTextSec, fontSize: 13)));
+          }
+          final docs = (snap.data?.docs ?? [])
+            ..sort((a, b) {
+              final ta = (a.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+              final tb = (b.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+              if (ta == null && tb == null) return 0;
+              if (ta == null) return 1;
+              if (tb == null) return -1;
+              return tb.compareTo(ta);
+            });
           if (docs.isEmpty) {
             return Center(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.notifications_none_rounded, size: 56, color: AppColors.textHint),
+                Icon(Icons.notifications_none_rounded, size: 56, color: context.colTextHint),
                 const SizedBox(height: 16),
                 Text('No tienes notificaciones aún',
-                    style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 16, color: AppColors.textPrimary)),
+                    style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 16, color: context.colText)),
               ]),
             );
           }
           return ListView.separated(
             itemCount: docs.length,
-            separatorBuilder: (context, i) => const Divider(height: 1, color: AppColors.border),
+            separatorBuilder: (context, i) => Divider(height: 1, color: context.colBorder),
             itemBuilder: (context, i) {
               final data = docs[i].data() as Map<String, dynamic>;
               final isRead = data['read'] as bool? ?? false;
@@ -116,7 +127,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               return GestureDetector(
                 onTap: () => _handleTap(context, data),
                 child: Container(
-                  color: isRead ? Colors.white : AppColors.accentBg,
+                  color: isRead ? context.colBgCard : context.colAccentBg,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     AvatarWithFrame(
@@ -132,13 +143,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text(text,
                             style: GoogleFonts.dmSans(
-                              fontSize: 13, color: AppColors.textPrimary,
+                              fontSize: 13, color: context.colText,
                               fontWeight: isRead ? FontWeight.w400 : FontWeight.w600,
                               height: 1.4,
                             )),
                         if (timeStr.isNotEmpty) ...[
                           const SizedBox(height: 3),
-                          Text(timeStr, style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint)),
+                          Text(timeStr, style: GoogleFonts.dmSans(fontSize: 11, color: context.colTextHint)),
                         ],
                       ]),
                     ),

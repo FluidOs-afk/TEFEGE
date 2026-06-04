@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../main.dart' show AppColors;
+import '../main.dart' show AppColors, AppColorsExt;
 import '../models/post_model.dart';
 import '../models/report_model.dart';
 import '../models/user_post.dart';
@@ -199,14 +199,12 @@ class _PostDetailScreenState extends State<PostDetailScreen>
   Widget build(BuildContext context) {
     if (_post == null && !_notFound) {
       return const Scaffold(
-        backgroundColor: AppColors.bgCard,
         body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
       );
     }
 
     if (_notFound || _post == null) {
       return Scaffold(
-        backgroundColor: AppColors.bgCard,
         appBar: AppBar(),
         body: const Center(child: Text('Publicación no encontrada')),
       );
@@ -221,7 +219,6 @@ class _PostDetailScreenState extends State<PostDetailScreen>
     final isOwner = post.userId == currentUid;
 
     return Scaffold(
-      backgroundColor: AppColors.bgCard,
       appBar: AppBar(
         title: Text(post.title,
             style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 16)),
@@ -256,7 +253,7 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                       post.imageBase64.isNotEmpty
                           ? RepaintBoundary(child: ImageUtils.imageFromBase64(post.imageBase64, cacheKey: post.id))
                           : Container(
-                              color: AppColors.accentBg,
+                              color: context.colAccentBg,
                               child: const Icon(Icons.checkroom_outlined,
                                   size: 64, color: AppColors.primaryMed)),
                       Center(
@@ -294,10 +291,10 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                             style: GoogleFonts.dmSans(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 14,
-                                color: AppColors.textPrimary)),
+                                color: context.colText)),
                         Text(_timeAgo(post.createdAt),
                             style: GoogleFonts.dmSans(
-                                fontSize: 11, color: AppColors.textHint)),
+                                fontSize: 11, color: context.colTextHint)),
                       ]),
                     ]),
                   ),
@@ -315,14 +312,14 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                             : Icons.favorite_border_rounded,
                         color: isLiked
                             ? const Color(0xFFEF5350)
-                            : AppColors.textPrimary,
+                            : context.colText,
                         size: 26),
                     ),
                     IconButton(
                       onPressed: () =>
                           FocusScope.of(context).requestFocus(FocusNode()),
-                      icon: const Icon(Icons.chat_bubble_outline_rounded,
-                          size: 26, color: AppColors.textPrimary),
+                      icon: Icon(Icons.chat_bubble_outline_rounded,
+                          size: 26, color: context.colText),
                     ),
                   ]),
                 ),
@@ -337,7 +334,7 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                             style: GoogleFonts.dmSans(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 13,
-                                color: AppColors.textPrimary)),
+                                color: context.colText)),
                         if (post.description.isNotEmpty) ...[
                           const SizedBox(height: 4),
                           RichText(
@@ -347,12 +344,12 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                                 style: GoogleFonts.dmSans(
                                     fontWeight: FontWeight.w700,
                                     fontSize: 13,
-                                    color: AppColors.textPrimary)),
+                                    color: context.colText)),
                             TextSpan(
                                 text: post.description,
                                 style: GoogleFonts.dmSans(
                                     fontSize: 13,
-                                    color: AppColors.textSec,
+                                    color: context.colTextSec,
                                     height: 1.45)),
                           ])),
                         ],
@@ -389,7 +386,7 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                         child: Text(
                           'Sin comentarios. Sé el primero.',
                           style: GoogleFonts.dmSans(
-                              fontSize: 12, color: AppColors.textHint),
+                              fontSize: 12, color: context.colTextHint),
                         ),
                       );
                     }
@@ -431,12 +428,12 @@ class _PostDetailScreenState extends State<PostDetailScreen>
           child: Container(
             padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
             decoration: BoxDecoration(
-              color: AppColors.bgCard,
+              color: context.colBgCard,
               border: Border(
                   top: BorderSide(
                       color: _isCommentBlocked
                           ? Colors.red.withValues(alpha: 0.3)
-                          : AppColors.border)),
+                          : context.colBorder)),
             ),
             child: _isCommentBlocked
                 ? Center(
@@ -507,10 +504,10 @@ class _PostDetailScreenState extends State<PostDetailScreen>
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        decoration: const BoxDecoration(
-            color: AppColors.bgCard,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+            color: ctx.colBgCard,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24))),
         child: SafeArea(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
           const SizedBox(height: 8),
@@ -519,7 +516,7 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                      color: AppColors.border,
+                      color: ctx.colBorder,
                       borderRadius: BorderRadius.circular(2)))),
           const SizedBox(height: 6),
           if (isOwner)
@@ -671,12 +668,12 @@ class _CommentRowState extends State<_CommentRow> {
                             style: GoogleFonts.dmSans(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 13,
-                                color: AppColors.textPrimary)),
+                                color: context.colText)),
                         TextSpan(
                             text: widget.comment.text,
                             style: GoogleFonts.dmSans(
                                 fontSize: 13,
-                                color: AppColors.textSec,
+                                color: context.colTextSec,
                                 height: 1.4)),
                       ])),
                     ),
@@ -703,7 +700,7 @@ class _CommentRowState extends State<_CommentRow> {
                   Row(children: [
                     Text(_timeAgo(widget.comment.createdAt),
                         style: GoogleFonts.dmSans(
-                            fontSize: 10, color: AppColors.textHint)),
+                            fontSize: 10, color: context.colTextHint)),
                     const SizedBox(width: 10),
                     GestureDetector(
                       onTap: _toggleLike,
@@ -711,14 +708,14 @@ class _CommentRowState extends State<_CommentRow> {
                         Icon(
                           _liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                           size: 13,
-                          color: _liked ? AppColors.primary : AppColors.textHint,
+                          color: _liked ? AppColors.primary : context.colTextHint,
                         ),
                         if (_likes > 0) ...[
                           const SizedBox(width: 3),
                           Text('$_likes',
                               style: GoogleFonts.dmSans(
                                   fontSize: 10,
-                                  color: AppColors.textHint,
+                                  color: context.colTextHint,
                                   fontWeight: FontWeight.w600)),
                         ],
                       ]),

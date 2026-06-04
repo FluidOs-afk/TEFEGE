@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../main.dart' show AppColors;
+import '../main.dart' show AppColors, AppColorsExt;
 import '../models/ai_outfit.dart';
 import '../models/wardrobe_item.dart';
 import '../providers/auth_provider.dart';
@@ -19,7 +19,6 @@ class AiOutfitsScreen extends StatelessWidget {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: AppColors.bgPage,
         body: NestedScrollView(
           headerSliverBuilder: (context, _) => [
             SliverAppBar(
@@ -243,20 +242,20 @@ class _GenerateTabState extends State<_GenerateTab>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.checkroom_outlined,
-                  size: 56, color: AppColors.textHint),
+              Icon(Icons.checkroom_outlined,
+                  size: 56, color: context.colTextHint),
               const SizedBox(height: 16),
               Text('Añade prendas a tu armario primero',
                   style: GoogleFonts.dmSans(
                       fontWeight: FontWeight.w700,
                       fontSize: 16,
-                      color: AppColors.textPrimary),
+                      color: context.colText),
                   textAlign: TextAlign.center),
               const SizedBox(height: 6),
               Text(
                   'La IA necesita conocer tu armario para generar outfits',
                   style: GoogleFonts.dmSans(
-                      color: AppColors.textHint, fontSize: 13),
+                      color: context.colTextHint, fontSize: 13),
                   textAlign: TextAlign.center),
               const SizedBox(height: 20),
               ElevatedButton.icon(
@@ -292,7 +291,7 @@ class _GenerateTabState extends State<_GenerateTab>
               style: GoogleFonts.dmSans(
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
-                  color: AppColors.textPrimary)),
+                  color: context.colText)),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8, runSpacing: 8,
@@ -312,12 +311,12 @@ class _GenerateTabState extends State<_GenerateTab>
                             AppColors.primaryMed
                           ])
                         : null,
-                    color: sel ? null : AppColors.bgCard,
+                    color: sel ? null : context.colBgCard,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                         color: sel
                             ? AppColors.primary
-                            : AppColors.border,
+                            : context.colBorder,
                         width: sel ? 0 : 1),
                     boxShadow: sel
                         ? [
@@ -335,7 +334,7 @@ class _GenerateTabState extends State<_GenerateTab>
                           fontWeight: FontWeight.w700,
                           color: sel
                               ? Colors.white
-                              : AppColors.textSec)),
+                              : context.colTextSec)),
                 ),
               );
             }).toList(),
@@ -372,9 +371,9 @@ class _GenerateTabState extends State<_GenerateTab>
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.bgCard,
+                color: context.colBgCard,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: context.colBorder),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -395,14 +394,14 @@ class _GenerateTabState extends State<_GenerateTab>
                     styleSheet: MarkdownStyleSheet(
                       p: GoogleFonts.dmSans(
                           fontSize: 13,
-                          color: AppColors.textPrimary,
+                          color: context.colText,
                           height: 1.5),
                       h3: GoogleFonts.dmSans(
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
-                          color: AppColors.textPrimary),
+                          color: context.colText),
                       listBullet: GoogleFonts.dmSans(
-                          fontSize: 13, color: AppColors.textSec),
+                          fontSize: 13, color: context.colTextSec),
                     ),
                   ),
                 ],
@@ -416,7 +415,7 @@ class _GenerateTabState extends State<_GenerateTab>
                   style: GoogleFonts.dmSans(
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
-                      color: AppColors.textSec)),
+                      color: context.colTextSec)),
               const SizedBox(height: 6),
               Wrap(
                 spacing: 6, runSpacing: 4,
@@ -425,7 +424,7 @@ class _GenerateTabState extends State<_GenerateTab>
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                              color: AppColors.accentBg,
+                              color: context.colAccentBg,
                               borderRadius: BorderRadius.circular(8)),
                           child: Text(item.name,
                               style: GoogleFonts.dmSans(
@@ -496,20 +495,20 @@ class _HistoryTab extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.history_outlined,
-                      size: 52, color: AppColors.textHint),
+                  Icon(Icons.history_outlined,
+                      size: 52, color: context.colTextHint),
                   const SizedBox(height: 14),
                   Text('Aún no has guardado ningún outfit',
                       style: GoogleFonts.dmSans(
                           fontWeight: FontWeight.w700,
                           fontSize: 16,
-                          color: AppColors.textPrimary),
+                          color: context.colText),
                       textAlign: TextAlign.center),
                   const SizedBox(height: 6),
                   Text(
                       'Genera un outfit y pulsa "Guardar" para verlo aquí',
                       style: GoogleFonts.dmSans(
-                          color: AppColors.textHint, fontSize: 13),
+                          color: context.colTextHint, fontSize: 13),
                       textAlign: TextAlign.center),
                 ],
               ),
@@ -547,9 +546,9 @@ class _HistoryCardState extends State<_HistoryCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
+        color: context.colBgCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.colBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -590,11 +589,11 @@ class _HistoryCardState extends State<_HistoryCard> {
                         Text(outfit.weatherContext,
                             style: GoogleFonts.dmSans(
                                 fontSize: 12,
-                                color: AppColors.textSec)),
+                                color: context.colTextSec)),
                       Text(dateStr,
                           style: GoogleFonts.dmSans(
                               fontSize: 11,
-                              color: AppColors.textHint)),
+                              color: context.colTextHint)),
                     ],
                   ),
                 ),
@@ -602,7 +601,7 @@ class _HistoryCardState extends State<_HistoryCard> {
                     _expanded
                         ? Icons.expand_less_rounded
                         : Icons.expand_more_rounded,
-                    color: AppColors.textHint),
+                    color: context.colTextHint),
               ]),
             ),
           ),
@@ -617,7 +616,7 @@ class _HistoryCardState extends State<_HistoryCard> {
                     : outfit.suggestion,
                 style: GoogleFonts.dmSans(
                     fontSize: 12,
-                    color: AppColors.textSec,
+                    color: context.colTextSec,
                     height: 1.4),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
@@ -634,13 +633,13 @@ class _HistoryCardState extends State<_HistoryCard> {
                 styleSheet: MarkdownStyleSheet(
                   p: GoogleFonts.dmSans(
                       fontSize: 13,
-                      color: AppColors.textPrimary,
+                      color: context.colText,
                       height: 1.5),
                   h3: GoogleFonts.dmSans(
                       fontWeight: FontWeight.w700,
                       fontSize: 14),
                   listBullet: GoogleFonts.dmSans(
-                      fontSize: 13, color: AppColors.textSec),
+                      fontSize: 13, color: context.colTextSec),
                 ),
               ),
             ),
@@ -671,9 +670,9 @@ class _WeatherCard extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.bgCard,
+          color: context.colBgCard,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: context.colBorder),
         ),
         child: Row(children: [
           const SizedBox(
@@ -683,7 +682,7 @@ class _WeatherCard extends StatelessWidget {
           const SizedBox(width: 12),
           Text('Obteniendo el clima...',
               style: GoogleFonts.dmSans(
-                  color: AppColors.textSec, fontSize: 13)),
+                  color: context.colTextSec, fontSize: 13)),
         ]),
       );
     }
@@ -692,7 +691,7 @@ class _WeatherCard extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.accentBg,
+          color: context.colAccentBg,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
               color: AppColors.primary.withValues(alpha: 0.2)),
@@ -705,7 +704,7 @@ class _WeatherCard extends StatelessWidget {
             child: Text(
                 'Activa la ubicación para recomendaciones según el tiempo',
                 style: GoogleFonts.dmSans(
-                    color: AppColors.textSec, fontSize: 12)),
+                    color: context.colTextSec, fontSize: 12)),
           ),
           TextButton(
             onPressed: onRetry,

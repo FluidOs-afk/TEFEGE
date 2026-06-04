@@ -10,6 +10,7 @@ import '../models/report_model.dart';
 import '../models/story_model.dart';
 import '../providers/auth_provider.dart';
 import '../services/messages_service.dart';
+import '../services/notifications_service.dart';
 import '../services/posts_service.dart';
 import '../services/stories_service.dart';
 import '../utils/image_utils.dart';
@@ -117,10 +118,37 @@ class _FeedScreenState extends State<FeedScreen> {
                     ]);
                   },
                 ),
-                IconButton(
-                  onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const NotificationsScreen())),
-                  icon: Icon(Icons.notifications_none_rounded, color: context.colText, size: 22),
+                StreamBuilder<int>(
+                  stream: NotificationsService.instance.streamUnreadCount(currentUid),
+                  builder: (context, snap) {
+                    final unread = snap.data ?? 0;
+                    return Stack(clipBehavior: Clip.none, children: [
+                      IconButton(
+                        onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const NotificationsScreen())),
+                        icon: Icon(Icons.notifications_none_rounded, color: context.colText, size: 22),
+                      ),
+                      if (unread > 0)
+                        Positioned(
+                          top: 6, right: 6,
+                          child: IgnorePointer(
+                            child: Container(
+                              width: 16, height: 16,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFEF5350),
+                                shape: BoxShape.circle,
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                unread > 9 ? '9+' : '$unread',
+                                style: GoogleFonts.dmSans(
+                                    color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ]);
+                  },
                 ),
                 IconButton(
                   onPressed: () => Navigator.of(context).push(

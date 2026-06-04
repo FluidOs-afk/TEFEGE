@@ -1,8 +1,12 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 
 class NotificationsService {
   static final NotificationsService instance = NotificationsService._();
@@ -10,6 +14,9 @@ class NotificationsService {
 
   final _messaging = FirebaseMessaging.instance;
   final _db = FirebaseFirestore.instance;
+
+  String get _backendUrl =>
+      (dotenv.env['BACKEND_URL'] ?? '').replaceAll(RegExp(r'/$'), '');
 
   Future<void> init(GlobalKey<ScaffoldMessengerState> messengerKey) async {
     if (kIsWeb) return;
@@ -67,14 +74,50 @@ class NotificationsService {
         'read': false,
         'createdAt': FieldValue.serverTimestamp(),
       });
+      // Enviar push al dispositivo via backend Railway
+      _sendPushViaBackend(
+        toUid: toUid,
+        type: type,
+        fromUsername: fromUsername,
+        postTitle: postTitle,
+        text: text,
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _sendPushViaBackend({
+    required String toUid,
+    required String type,
+    required String fromUsername,
+    String? postTitle,
+    String? text,
+  }) async {
+    try {
+      final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
+      if (idToken == null || _backendUrl.isEmpty) return;
+      await http.post(
+        Uri.parse('$_backendUrl/send-push'),
+        headers: {
+          'Authorization': 'Bearer $idToken',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'toUid': toUid,
+          'type': type,
+          'fromUsername': fromUsername,
+          'postTitle': postTitle ?? '',
+          'text': text ?? '',
+        }),
+      );
     } catch (_) {}
   }
 
   Stream<QuerySnapshot> streamNotifications(String uid) {
+    // Sin orderBy para evitar requerir un índice compuesto en Firestore.
+    // La ordenación se aplica en el cliente dentro de NotificationsScreen.
     return _db
         .collection('notifications')
         .where('toUid', isEqualTo: uid)
-        .orderBy('createdAt', descending: true)
         .limit(50)
         .snapshots();
   }

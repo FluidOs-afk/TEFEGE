@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import '../main.dart' show AppColors;
+import '../main.dart' show AppColors, AppColorsExt;
 import '../providers/auth_provider.dart';
 import '../services/profile_service.dart';
 import '../utils/content_filter.dart';
@@ -88,9 +88,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 18),
         decoration: BoxDecoration(
-          color: AppColors.bgPage,
+          color: ctx.colBgPage,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: ctx.colBorder),
         ),
         child: Column(children: [
           Icon(icon, color: AppColors.primary, size: 26),
@@ -152,7 +152,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
       appBar: AppBar(
         title: Text('Editar perfil', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 17)),
         actions: [
@@ -229,7 +228,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             _label('Privacidad'),
             const SizedBox(height: 6),
             Container(
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12),
+              decoration: BoxDecoration(color: context.colBgCard, borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppColors.border)),
               child: SwitchListTile(
                 value: _isPrivate,
@@ -329,10 +328,10 @@ class _FrameSelector extends StatelessWidget {
               margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.accentBg : Colors.white,
+                color: isSelected ? context.colAccentBg : context.colBgCard,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isSelected ? AppColors.primary : AppColors.border,
+                  color: isSelected ? AppColors.primary : context.colBorder,
                   width: isSelected ? 2 : 1,
                 ),
               ),

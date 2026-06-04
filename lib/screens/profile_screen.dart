@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../main.dart' show AppColors;
+import '../main.dart' show AppColors, AppColorsExt;
 import '../models/post_model.dart';
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
@@ -168,8 +168,8 @@ class _ProfileBodyState extends State<_ProfileBody> {
                 onTap: () => Navigator.pop(context),
                 child: Container(
                   padding: const EdgeInsets.all(6),
-                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                  child: const Icon(Icons.close, size: 18, color: AppColors.textPrimary),
+                  decoration: BoxDecoration(color: context.colBgCard, shape: BoxShape.circle),
+                  child: Icon(Icons.close, size: 18, color: context.colText),
                 ),
               ),
             ),
@@ -185,7 +185,6 @@ class _ProfileBodyState extends State<_ProfileBody> {
         !widget.isOwn && widget.user.isPrivate && !_isFollowing;
 
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
       floatingActionButton: widget.isOwn
           ? FloatingActionButton(
               onPressed: () => Navigator.of(context).push(
@@ -200,7 +199,6 @@ class _ProfileBodyState extends State<_ProfileBody> {
             expandedHeight: 300,
             pinned: true,
             elevation: 0,
-            backgroundColor: AppColors.bgCard,
             automaticallyImplyLeading: !widget.isOwn,
             actions: [
               IconButton(icon: const Icon(Icons.share_outlined), onPressed: () {}),
@@ -260,7 +258,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
+        color: context.colBgCard,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 20, offset: const Offset(0, 6))],
       ),
@@ -296,7 +294,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
                         : FilledButton(
                             onPressed: _toggleFollow,
                             style: FilledButton.styleFrom(
-                              backgroundColor: _isFollowing || (widget.user.isPrivate && _isPending) ? AppColors.bgCard : AppColors.primary,
+                              backgroundColor: _isFollowing || (widget.user.isPrivate && _isPending) ? context.colBgCard : AppColors.primary,
                               foregroundColor: _isFollowing || (widget.user.isPrivate && _isPending) ? AppColors.primary : Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(20),
@@ -325,14 +323,14 @@ class _ProfileBodyState extends State<_ProfileBody> {
           ),
           const SizedBox(height: 12),
           Text(widget.user.nombre,
-              style: GoogleFonts.dmSans(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+              style: GoogleFonts.dmSans(fontSize: 17, fontWeight: FontWeight.w800, color: context.colText)),
           const SizedBox(height: 2),
           Text('@${widget.user.username}',
-              style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.textSec)),
+              style: GoogleFonts.dmSans(fontSize: 13, color: context.colTextSec)),
           if (widget.user.bio.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(widget.user.bio,
-                style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.textSec, height: 1.5)),
+                style: GoogleFonts.dmSans(fontSize: 13, color: context.colTextSec, height: 1.5)),
           ],
           if (widget.isOwn && widget.user.pendingRequests.isNotEmpty) ...[
             const SizedBox(height: 10),
@@ -342,7 +340,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.accentBg,
+                  color: context.colAccentBg,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
                 ),

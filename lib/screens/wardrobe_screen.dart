@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
-import '../main.dart' show AppColors;
+import '../main.dart' show AppColors, AppColorsExt;
 import '../models/wardrobe_item.dart';
 import '../providers/auth_provider.dart';
 import '../services/wardrobe_service.dart';
@@ -36,10 +36,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     final uid = context.read<AuthProvider>().currentUser?.uid ?? '';
 
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
       appBar: AppBar(
         title: Text('Mi Armario',
-            style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 17, color: AppColors.textPrimary)),
+            style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 17, color: context.colText)),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddSheet(context, uid),
@@ -49,12 +48,12 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       body: Column(
         children: [
           Container(
-            color: AppColors.bgCard, height: 52,
+            color: context.colBgCard, height: 52,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               itemCount: _kCategories.length,
-              itemBuilder: (_, i) {
+              itemBuilder: (context, i) {
                 final cat = _kCategories[i];
                 final sel = _selectedCat == cat;
                 return GestureDetector(
@@ -64,15 +63,15 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                     margin: const EdgeInsets.only(right: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                     decoration: BoxDecoration(
-                      color: sel ? AppColors.primary : AppColors.bgPage,
+                      color: sel ? AppColors.primary : context.colBgPage,
                       borderRadius: BorderRadius.circular(20),
-                      border: sel ? null : Border.all(color: AppColors.border),
+                      border: sel ? null : Border.all(color: context.colBorder),
                     ),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(_catIcon(cat), size: 13, color: sel ? Colors.white : AppColors.textHint),
+                      Icon(_catIcon(cat), size: 13, color: sel ? Colors.white : context.colTextHint),
                       const SizedBox(width: 5),
                       Text(cat, style: GoogleFonts.dmSans(fontSize: 12,
-                          color: sel ? Colors.white : AppColors.textSec,
+                          color: sel ? Colors.white : context.colTextSec,
                           fontWeight: sel ? FontWeight.w700 : FontWeight.w500)),
                     ]),
                   ),
@@ -206,7 +205,7 @@ class _ItemCard extends StatelessWidget {
       onLongPress: onLongPress,
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.bgCard, borderRadius: BorderRadius.circular(18),
+          color: context.colBgCard, borderRadius: BorderRadius.circular(18),
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 3))],
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -223,10 +222,10 @@ class _ItemCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(item.name,
-                  style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textPrimary),
+                  style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 13, color: context.colText),
                   maxLines: 1, overflow: TextOverflow.ellipsis),
               if (item.brand.isNotEmpty)
-                Text(item.brand, style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint)),
+                Text(item.brand, style: GoogleFonts.dmSans(fontSize: 11, color: context.colTextHint)),
               const SizedBox(height: 5),
               Row(children: [
                 if (item.color.isNotEmpty) _tag(item.color),
@@ -240,16 +239,16 @@ class _ItemCard extends StatelessWidget {
     );
   }
 
-  Widget _placeholder() => Container(
-    width: double.infinity, color: AppColors.accentBg,
+  Widget _placeholder() => Builder(builder: (context) => Container(
+    width: double.infinity, color: context.colAccentBg,
     child: Center(child: Icon(_catIcon(item.category), size: 48, color: AppColors.primaryMed)),
-  );
+  ));
 
-  Widget _tag(String text) => Container(
+  Widget _tag(String text) => Builder(builder: (context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-    decoration: BoxDecoration(color: AppColors.accentBg, borderRadius: BorderRadius.circular(6)),
+    decoration: BoxDecoration(color: context.colAccentBg, borderRadius: BorderRadius.circular(6)),
     child: Text(text, style: GoogleFonts.dmSans(fontSize: 9, color: AppColors.primary, fontWeight: FontWeight.w600)),
-  );
+  ));
 }
 
 class _ItemFormSheet extends StatefulWidget {

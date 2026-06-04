@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../main.dart' show AppColors;
+import '../main.dart' show AppColors, AppColorsExt;
 import '../providers/auth_provider.dart';
 import '../services/messages_service.dart';
 import '../widgets/avatar_with_frame.dart';
@@ -25,7 +25,6 @@ class MessagesListScreen extends StatelessWidget {
     final currentUid = context.read<AuthProvider>().currentUser?.uid ?? '';
 
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
       appBar: AppBar(
         title: Text('Mensajes', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 17)),
       ),
@@ -41,13 +40,13 @@ class MessagesListScreen extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 32),
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.mail_outline_rounded, size: 56, color: AppColors.textHint),
+                  Icon(Icons.mail_outline_rounded, size: 56, color: context.colTextHint),
                   const SizedBox(height: 16),
                   Text('No tienes mensajes',
-                      style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 16, color: AppColors.textPrimary)),
+                      style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 16, color: context.colText)),
                   const SizedBox(height: 6),
                   Text('Busca un usuario para empezar a chatear',
-                      style: GoogleFonts.dmSans(color: AppColors.textHint, fontSize: 13),
+                      style: GoogleFonts.dmSans(color: context.colTextHint, fontSize: 13),
                       textAlign: TextAlign.center),
                 ]),
               ),
@@ -55,7 +54,7 @@ class MessagesListScreen extends StatelessWidget {
           }
           return ListView.separated(
             itemCount: docs.length,
-            separatorBuilder: (context, i) => const Divider(height: 1, indent: 72, color: AppColors.border),
+            separatorBuilder: (context, i) => Divider(height: 1, indent: 72, color: context.colBorder),
             itemBuilder: (context, i) {
               final data = docs[i].data() as Map<String, dynamic>;
               final convId = docs[i].id;
@@ -95,13 +94,13 @@ class MessagesListScreen extends StatelessWidget {
                     title: Text(name,
                         style: GoogleFonts.dmSans(
                           fontWeight: unread > 0 ? FontWeight.w800 : FontWeight.w600,
-                          fontSize: 14, color: AppColors.textPrimary,
+                          fontSize: 14, color: context.colText,
                         )),
                     subtitle: Text(
                       lastMessage.isEmpty ? 'Sin mensajes aún' : lastMessage,
                       style: GoogleFonts.dmSans(
                         fontSize: 12,
-                        color: unread > 0 ? AppColors.textPrimary : AppColors.textHint,
+                        color: unread > 0 ? context.colText : context.colTextHint,
                         fontWeight: unread > 0 ? FontWeight.w600 : FontWeight.w400,
                       ),
                       maxLines: 1, overflow: TextOverflow.ellipsis,
@@ -111,7 +110,7 @@ class MessagesListScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(_timeAgo(lastTime),
-                            style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint)),
+                            style: GoogleFonts.dmSans(fontSize: 11, color: context.colTextHint)),
                         if (unread > 0) ...[
                           const SizedBox(height: 4),
                           Container(

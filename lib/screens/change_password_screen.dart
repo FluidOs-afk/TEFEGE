@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../main.dart' show AppColors;
+import '../main.dart' show AppColors, AppColorsExt;
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -45,7 +45,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     final email = FirebaseAuth.instance.currentUser?.email ?? '';
 
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
       appBar: AppBar(
         title: Text('Cambiar contraseña',
             style:
@@ -59,7 +58,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.accentBg,
+                color: context.colAccentBg,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                     color: AppColors.primary.withValues(alpha: 0.2)),

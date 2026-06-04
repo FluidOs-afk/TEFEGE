@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../main.dart' show AppColors;
+import '../main.dart' show AppColors, AppColorsExt;
 import '../models/forum_thread.dart';
 import '../models/forum_reply.dart';
 import '../providers/auth_provider.dart';
@@ -44,9 +44,8 @@ class _ForumScreenState extends State<ForumScreen> {
     final currentAvatarBase64 = auth.currentUser?.avatarBase64 ?? '';
 
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
       appBar: AppBar(
-        title: Text('Foro', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 17, color: AppColors.textPrimary)),
+        title: Text('Foro', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 17, color: context.colText)),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openComposer(context,
@@ -56,12 +55,12 @@ class _ForumScreenState extends State<ForumScreen> {
       ),
       body: Column(children: [
         Container(
-          color: AppColors.bgCard, height: 52,
+          color: context.colBgCard, height: 52,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             itemCount: _kCategories.length,
-            itemBuilder: (_, i) {
+            itemBuilder: (context, i) {
               final cat = _kCategories[i];
               final meta = _catMeta[cat]!;
               final sel = _selectedCat == cat;
@@ -72,16 +71,16 @@ class _ForumScreenState extends State<ForumScreen> {
                   margin: const EdgeInsets.only(right: 8),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                   decoration: BoxDecoration(
-                    color: sel ? meta.color : AppColors.bgPage,
+                    color: sel ? meta.color : context.colBgPage,
                     borderRadius: BorderRadius.circular(20),
-                    border: sel ? null : Border.all(color: AppColors.border),
+                    border: sel ? null : Border.all(color: context.colBorder),
                   ),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(meta.icon, size: 13, color: sel ? Colors.white : AppColors.textHint),
+                    Icon(meta.icon, size: 13, color: sel ? Colors.white : context.colTextHint),
                     const SizedBox(width: 5),
                     Text(cat, style: GoogleFonts.dmSans(
                         fontSize: 12,
-                        color: sel ? Colors.white : AppColors.textSec,
+                        color: sel ? Colors.white : context.colTextSec,
                         fontWeight: sel ? FontWeight.w700 : FontWeight.w500)),
                   ]),
                 ),
@@ -170,14 +169,14 @@ class _ThreadCard extends StatelessWidget {
           _CatPill(category: thread.category, meta: meta),
           const Spacer(),
           Text(_relativeTime(thread.createdAt),
-              style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint)),
+              style: GoogleFonts.dmSans(fontSize: 11, color: context.colTextHint)),
         ]),
         const SizedBox(height: 9),
         Text(thread.title, maxLines: 2, overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 15, color: AppColors.textPrimary, height: 1.25)),
+            style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 15, color: context.colText, height: 1.25)),
         const SizedBox(height: 6),
         Text(thread.content, maxLines: 2, overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.dmSans(fontSize: 12, color: AppColors.textSec, height: 1.35)),
+            style: GoogleFonts.dmSans(fontSize: 12, color: context.colTextSec, height: 1.35)),
         const SizedBox(height: 10),
         Row(children: [
           _AuthorRow(avatarBase64: thread.avatarBase64, username: thread.username, userId: thread.userId),
@@ -186,14 +185,14 @@ class _ThreadCard extends StatelessWidget {
             onTap: onLike,
             child: Row(children: [
               Icon(isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                  size: 16, color: isLiked ? AppColors.primary : AppColors.textHint),
+                  size: 16, color: isLiked ? AppColors.primary : context.colTextHint),
               const SizedBox(width: 3),
               Text('${thread.likes}',
-                  style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint, fontWeight: FontWeight.w700)),
+                  style: GoogleFonts.dmSans(fontSize: 11, color: context.colTextHint, fontWeight: FontWeight.w700)),
             ]),
           ),
           const SizedBox(width: 12),
-          const Icon(Icons.mode_comment_outlined, size: 14, color: AppColors.textHint),
+          Icon(Icons.mode_comment_outlined, size: 14, color: context.colTextHint),
           const SizedBox(width: 3),
           _ReplyCount(threadId: thread.id),
         ]),
@@ -280,7 +279,6 @@ class _ThreadDetailScreenState extends State<_ThreadDetailScreen> {
     final isLiked = thread.isLikedBy(widget.currentUid);
 
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
       appBar: AppBar(
         title: Text(thread.title, maxLines: 1, overflow: TextOverflow.ellipsis,
             style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
@@ -348,8 +346,8 @@ class _ThreadDetailScreenState extends State<_ThreadDetailScreen> {
         Container(
           padding: EdgeInsets.only(left: 12, right: 12, top: 10,
               bottom: MediaQuery.of(context).viewInsets.bottom + 12),
-          decoration: const BoxDecoration(color: AppColors.bgCard,
-              border: Border(top: BorderSide(color: AppColors.border))),
+          decoration: BoxDecoration(color: context.colBgCard,
+              border: Border(top: BorderSide(color: context.colBorder))),
           child: SafeArea(top: false,
             child: Row(children: [
               Expanded(child: TextField(
@@ -616,8 +614,8 @@ class _ForumPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final panel = Container(margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: AppColors.bgCard, borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.border)), child: child);
+        decoration: BoxDecoration(color: context.colBgCard, borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: context.colBorder)), child: child);
     if (onTap == null) return panel;
     return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(14), child: panel);
   }
