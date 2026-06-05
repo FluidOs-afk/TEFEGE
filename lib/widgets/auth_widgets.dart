@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../main.dart' show AppColors;
+import '../main.dart' show AppColors, AppColorsExt;
 
 // ─── Campo de texto para auth ─────────────────────────────────────────────────
 class AuthTextField extends StatelessWidget {
@@ -58,13 +58,13 @@ class AuthTextField extends StatelessWidget {
       focusNode: focusNode,
       style: GoogleFonts.dmSans(
         fontSize: 14,
-        color: AppColors.textPrimary,
+        color: context.colText,
         fontWeight: FontWeight.w500,
       ),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: Icon(prefixIcon, size: 20, color: AppColors.textHint),
+        prefixIcon: Icon(prefixIcon, size: 20, color: context.colTextHint),
         suffixIcon: suffixIcon,
         counterText: '',
       ),

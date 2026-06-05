@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../main.dart' show AppColors, MainScreen;
+import '../main.dart' show AppColors, AppColorsExt, MainScreen;
 import '../providers/auth_provider.dart';
 import '../widgets/auth_widgets.dart';
 import 'legal_screen.dart';
@@ -194,9 +194,9 @@ class _RegisterScreenState extends State<RegisterScreen>
                 child: Container(
                   height: size.height * 0.70,
                   width: double.infinity,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                  decoration: BoxDecoration(
+                    color: context.colBgCard,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
                     boxShadow: [
                       BoxShadow(
                         color: Color(0x18000000),
@@ -355,7 +355,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                                     border: Border.all(
                                       color: _acceptedTerms
                                           ? AppColors.primary
-                                          : AppColors.border,
+                                          : context.colBorder,
                                       width: 2,
                                     ),
                                   ),
@@ -371,7 +371,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                                       Text('Acepto los ',
                                           style: GoogleFonts.dmSans(
                                               fontSize: 13,
-                                              color: AppColors.textSec)),
+                                              color: context.colTextSec)),
                                       GestureDetector(
                                         onTap: () => _openLegal(
                                           'Términos de Uso',
@@ -436,7 +436,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                               child: RichText(
                                 text: TextSpan(
                                   style: GoogleFonts.dmSans(
-                                      fontSize: 13.5, color: AppColors.textSec),
+                                      fontSize: 13.5, color: context.colTextSec),
                                   children: [
                                     const TextSpan(text: '¿Ya tienes cuenta? '),
                                     TextSpan(

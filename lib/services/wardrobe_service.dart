@@ -40,6 +40,22 @@ class WardrobeService {
     return finalItem;
   }
 
+  Future<void> updateItem(String uid, WardrobeItem item, XFile? newImageFile) async {
+    final ref = _db.collection('wardrobe').doc(uid).collection('items').doc(item.id);
+    String imageBase64 = item.imageBase64;
+    if (newImageFile != null) {
+      imageBase64 = await ImageUtils.imageToBase64(newImageFile);
+    }
+    // No actualizamos createdAt para conservar la fecha original
+    await ref.update({
+      'name': item.name,
+      'brand': item.brand,
+      'category': item.category,
+      'color': item.color,
+      'imageBase64': imageBase64,
+    });
+  }
+
   Future<void> deleteItem(String uid, String itemId) async {
     await _db.collection('wardrobe').doc(uid).collection('items').doc(itemId).delete();
   }

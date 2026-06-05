@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../main.dart' show AppColors, MainScreen;
+import '../main.dart' show AppColors, AppColorsExt, MainScreen;
 import '../providers/auth_provider.dart';
 import '../widgets/auth_widgets.dart';
 import '../widgets/outfy_logo.dart';
@@ -258,11 +258,11 @@ class _LoginScreenState extends State<LoginScreen>
                 child: Container(
                   height: size.height * 0.65,
                   width: double.infinity,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
+                  decoration: BoxDecoration(
+                    color: context.colBgCard,
                     borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(32)),
-                    boxShadow: [
+                        const BorderRadius.vertical(top: Radius.circular(32)),
+                    boxShadow: const [
                       BoxShadow(
                         color: Color(0x18000000),
                         blurRadius: 32,
@@ -282,7 +282,7 @@ class _LoginScreenState extends State<LoginScreen>
                             style: GoogleFonts.dmSans(
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
+                              color: context.colText,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -290,7 +290,7 @@ class _LoginScreenState extends State<LoginScreen>
                             'Inicia sesión para ver tu armario',
                             style: GoogleFonts.dmSans(
                               fontSize: 13,
-                              color: AppColors.textSec,
+                              color: context.colTextSec,
                             ),
                           ),
                           const SizedBox(height: 28),
@@ -372,7 +372,7 @@ class _LoginScreenState extends State<LoginScreen>
                                           border: Border.all(
                                             color: _rememberMe
                                                 ? AppColors.primary
-                                                : AppColors.border,
+                                                : context.colBorder,
                                             width: 2,
                                           ),
                                         ),
@@ -386,7 +386,7 @@ class _LoginScreenState extends State<LoginScreen>
                                         'Recordarme',
                                         style: GoogleFonts.dmSans(
                                           fontSize: 13,
-                                          color: AppColors.textSec,
+                                          color: context.colTextSec,
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
@@ -427,21 +427,21 @@ class _LoginScreenState extends State<LoginScreen>
                           // Divider
                           Row(
                             children: [
-                              const Expanded(
-                                  child: Divider(color: AppColors.border)),
+                              Expanded(
+                                  child: Divider(color: context.colBorder)),
                               Padding(
                                 padding:
                                     const EdgeInsets.symmetric(horizontal: 14),
                                 child: Text(
                                   'o',
                                   style: GoogleFonts.dmSans(
-                                    color: AppColors.textHint,
+                                    color: context.colTextHint,
                                     fontSize: 13,
                                   ),
                                 ),
                               ),
-                              const Expanded(
-                                  child: Divider(color: AppColors.border)),
+                              Expanded(
+                                  child: Divider(color: context.colBorder)),
                             ],
                           ),
                           const SizedBox(height: 20),
@@ -454,7 +454,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 text: TextSpan(
                                   style: GoogleFonts.dmSans(
                                     fontSize: 13.5,
-                                    color: AppColors.textSec,
+                                    color: context.colTextSec,
                                   ),
                                   children: [
                                     const TextSpan(
