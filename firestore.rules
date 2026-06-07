@@ -90,6 +90,11 @@ service cloud.firestore {
           && request.auth.uid in get(/databases/$(database)/documents/conversations/$(convId)).data.participants;
         allow create: if request.auth != null
           && request.resource.data.senderId == request.auth.uid;
+        allow update: if request.auth != null
+          && request.auth.uid == resource.data.senderId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'edited']);
+        allow delete: if request.auth != null
+          && request.auth.uid == resource.data.senderId;
       }
     }
 

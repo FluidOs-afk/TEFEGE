@@ -84,6 +84,24 @@ class MessagesService {
     );
   }
 
+  Future<void> editMessage(String convId, String messageId, String newText) async {
+    await _db
+        .collection('conversations')
+        .doc(convId)
+        .collection('messages')
+        .doc(messageId)
+        .update({'text': newText, 'edited': true});
+  }
+
+  Future<void> deleteMessage(String convId, String messageId) async {
+    await _db
+        .collection('conversations')
+        .doc(convId)
+        .collection('messages')
+        .doc(messageId)
+        .delete();
+  }
+
   Future<void> markAsRead(String convId, String uid) async {
     await _db
         .collection('conversations')

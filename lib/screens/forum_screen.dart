@@ -208,7 +208,7 @@ class _ReplyCount extends StatelessWidget {
   Widget build(BuildContext context) => StreamBuilder<List<ForumReply>>(
     stream: ForumService.instance.streamReplies(threadId),
     builder: (_, snap) => Text('${snap.data?.length ?? 0}',
-        style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint, fontWeight: FontWeight.w700)),
+        style: GoogleFonts.dmSans(fontSize: 11, color: context.colTextHint, fontWeight: FontWeight.w700)),
   );
 }
 
@@ -301,14 +301,14 @@ class _ThreadDetailScreenState extends State<_ThreadDetailScreen> {
                       _CatPill(category: thread.category, meta: meta),
                       const Spacer(),
                       Text(_relativeTime(thread.createdAt),
-                          style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint)),
+                          style: GoogleFonts.dmSans(fontSize: 11, color: context.colTextHint)),
                     ]),
                     const SizedBox(height: 12),
                     Text(thread.title,
-                        style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 20, color: AppColors.textPrimary, height: 1.15)),
+                        style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 20, color: context.colText, height: 1.15)),
                     const SizedBox(height: 10),
                     Text(thread.content,
-                        style: GoogleFonts.dmSans(fontSize: 14, color: AppColors.textPrimary, height: 1.45)),
+                        style: GoogleFonts.dmSans(fontSize: 14, color: context.colText, height: 1.45)),
                     const SizedBox(height: 12),
                     Row(children: [
                       _AuthorRow(avatarBase64: thread.avatarBase64, username: thread.username, userId: thread.userId),
@@ -317,10 +317,10 @@ class _ThreadDetailScreenState extends State<_ThreadDetailScreen> {
                         onTap: () => ForumService.instance.toggleLike(thread.id, widget.currentUid),
                         child: Row(children: [
                           Icon(isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                              size: 18, color: isLiked ? AppColors.primary : AppColors.textHint),
+                              size: 18, color: isLiked ? AppColors.primary : context.colTextHint),
                           const SizedBox(width: 4),
                           Text('${thread.likes}',
-                              style: GoogleFonts.dmSans(fontSize: 12, color: AppColors.textHint, fontWeight: FontWeight.w700)),
+                              style: GoogleFonts.dmSans(fontSize: 12, color: context.colTextHint, fontWeight: FontWeight.w700)),
                         ]),
                       ),
                     ]),
@@ -416,7 +416,7 @@ class _ReplyBubbleState extends State<_ReplyBubble> {
         _AuthorRow(avatarBase64: widget.reply.avatarBase64, username: widget.reply.username, userId: widget.reply.userId),
         const Spacer(),
         Text(_relativeTime(widget.reply.createdAt),
-            style: GoogleFonts.dmSans(fontSize: 10, color: AppColors.textHint)),
+            style: GoogleFonts.dmSans(fontSize: 10, color: context.colTextHint)),
         if (widget.onDelete != null) ...[
           const SizedBox(width: 4),
           GestureDetector(onTap: widget.onDelete,
@@ -424,7 +424,7 @@ class _ReplyBubbleState extends State<_ReplyBubble> {
         ],
       ]),
       const SizedBox(height: 8),
-      Text(widget.reply.content, style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.textPrimary, height: 1.4)),
+      Text(widget.reply.content, style: GoogleFonts.dmSans(fontSize: 13, color: context.colText, height: 1.4)),
       const SizedBox(height: 8),
       GestureDetector(
         onTap: _toggleLike,
@@ -432,11 +432,11 @@ class _ReplyBubbleState extends State<_ReplyBubble> {
           Icon(
             _liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
             size: 14,
-            color: _liked ? AppColors.primary : AppColors.textHint,
+            color: _liked ? AppColors.primary : context.colTextHint,
           ),
           if (_likes > 0) ...[
             const SizedBox(width: 3),
-            Text('$_likes', style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textHint, fontWeight: FontWeight.w600)),
+            Text('$_likes', style: GoogleFonts.dmSans(fontSize: 11, color: context.colTextHint, fontWeight: FontWeight.w600)),
           ],
         ]),
       ),
@@ -501,8 +501,8 @@ class _ThreadComposerState extends State<_ThreadComposer> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(color: AppColors.bgCard,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+      decoration: BoxDecoration(color: context.colBgCard,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(22))),
       child: SafeArea(top: false,
         child: Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -510,11 +510,11 @@ class _ThreadComposerState extends State<_ThreadComposer> {
             padding: const EdgeInsets.all(20),
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
               Center(child: Container(width: 36, height: 4,
-                  decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(4)))),
+                  decoration: BoxDecoration(color: context.colBorder, borderRadius: BorderRadius.circular(4)))),
               const SizedBox(height: 18),
-              Text('Nuevo hilo', style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+              Text('Nuevo hilo', style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.w800, color: context.colText)),
               const SizedBox(height: 14),
-              Text('Categoría', style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textSec)),
+              Text('Categoría', style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w700, color: context.colTextSec)),
               const SizedBox(height: 8),
               SizedBox(height: 40,
                 child: ListView.separated(
@@ -582,7 +582,7 @@ class _AuthorRow extends StatelessWidget {
               ? ImageUtils.imageFromBase64(avatarBase64, placeholder: _fallback())
               : _fallback())),
       const SizedBox(width: 6),
-      Text('@$username', style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.textSec, fontWeight: FontWeight.w700)),
+      Text('@$username', style: GoogleFonts.dmSans(fontSize: 11, color: context.colTextSec, fontWeight: FontWeight.w700)),
     ]),
   );
 
@@ -628,10 +628,10 @@ class _EmptyForumState extends StatelessWidget {
   Widget build(BuildContext context) => Center(
     child: Padding(padding: const EdgeInsets.all(32),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.forum_outlined, size: 44, color: AppColors.textHint),
+        Icon(Icons.forum_outlined, size: 44, color: context.colTextHint),
         const SizedBox(height: 12),
         Text(text, textAlign: TextAlign.center,
-            style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.textSec, fontWeight: FontWeight.w600)),
+            style: GoogleFonts.dmSans(fontSize: 13, color: context.colTextSec, fontWeight: FontWeight.w600)),
       ]),
     ),
   );
@@ -641,13 +641,13 @@ class _GuidelinesBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(color: AppColors.accentBg, borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border)),
+    decoration: BoxDecoration(color: context.colAccentBg, borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: context.colBorder)),
     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Icon(Icons.verified_user_outlined, size: 18, color: AppColors.primary),
       const SizedBox(width: 8),
       Expanded(child: Text('Publica contenido propio, evita datos personales y mantén un tono respetuoso.',
-          style: GoogleFonts.dmSans(fontSize: 12, color: AppColors.textSec, height: 1.35))),
+          style: GoogleFonts.dmSans(fontSize: 12, color: context.colTextSec, height: 1.35))),
     ]),
   );
 }
